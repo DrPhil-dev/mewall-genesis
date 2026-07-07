@@ -1,4 +1,4 @@
-const birthYear = 1958;
+const birthYear = 1959;
 const currentYear = new Date().getFullYear();
 const futureHorizon = birthYear + 99;
 const storageKey = "mewall_memories_v1";
@@ -8,11 +8,15 @@ const memories = loadMemories();
 const wall = document.getElementById("wall");
 const yearView = document.getElementById("yearView");
 const yearTitle = document.getElementById("yearTitle");
-const yearPrompt = document.getElementById("yearPrompt");
+const yearAge = document.getElementById("yearAge");
 const backButton = document.getElementById("backButton");
 const memoryInput = document.getElementById("memoryInput");
 const keepMemoryButton = document.getElementById("keepMemoryButton");
+const showEditorButton = document.getElementById("showEditorButton");
+const cancelMemoryButton = document.getElementById("cancelMemoryButton");
+const memoryEditor = document.getElementById("memoryEditor");
 const memoryList = document.getElementById("memoryList");
+const emptyYear = document.getElementById("emptyYear");
 
 let selectedYear = null;
 
@@ -48,14 +52,16 @@ function createWall() {
     wall.appendChild(brick);
   }
 }
+
 function openYear(year, age) {
   selectedYear = year;
 
   wall.classList.add("hidden");
   yearView.classList.remove("hidden");
+  memoryEditor.classList.add("hidden");
 
   yearTitle.textContent = `${year}`;
-  yearPrompt.textContent = `Age ${age}. Every year has a memory. Would you like to begin?`;
+  yearAge.textContent = `Age ${age}`;
 
   memoryInput.value = "";
   renderMemories();
@@ -80,6 +86,8 @@ function keepMemory() {
   saveMemories();
 
   memoryInput.value = "";
+  memoryEditor.classList.add("hidden");
+
   renderMemories();
   createWall();
 }
@@ -90,8 +98,13 @@ function renderMemories() {
   const yearMemories = memories[selectedYear] || [];
 
   if (yearMemories.length === 0) {
+    emptyYear.classList.remove("hidden");
+    showEditorButton.textContent = "Keep your first memory";
     return;
   }
+
+  emptyYear.classList.add("hidden");
+  showEditorButton.textContent = "Keep another memory";
 
   yearMemories.forEach((memory) => {
     const card = document.createElement("article");
@@ -146,6 +159,16 @@ function escapeHtml(value) {
 backButton.addEventListener("click", () => {
   yearView.classList.add("hidden");
   wall.classList.remove("hidden");
+});
+
+showEditorButton.addEventListener("click", () => {
+  memoryEditor.classList.remove("hidden");
+  memoryInput.focus();
+});
+
+cancelMemoryButton.addEventListener("click", () => {
+  memoryInput.value = "";
+  memoryEditor.classList.add("hidden");
 });
 
 keepMemoryButton.addEventListener("click", keepMemory);

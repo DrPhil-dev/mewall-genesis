@@ -16,17 +16,37 @@
     <section id="wall" class="wall" aria-label="Home Wall"></section>
 
     <section id="yearView" class="year-view hidden">
-      <button id="backButton" class="back-button">← Back to wall</button>
-      <h2 id="yearTitle"></h2>
-      <p id="yearPrompt"></p>
+      <button id="backButton" class="back-button">← Home Wall</button>
 
-      <div class="memory-box">
-        <label for="memoryInput">What comes to mind?</label>
-        <textarea id="memoryInput" rows="7" placeholder="Tell this year a memory..."></textarea>
-        <button id="keepMemoryButton" class="keep-button">Keep this memory</button>
+      <div class="year-heading">
+        <h2 id="yearTitle"></h2>
+        <p id="yearAge"></p>
       </div>
 
-      <div id="memoryList" class="memory-list"></div>
+      <div class="year-invitation">
+        <p>Every year has a story.</p>
+        <p>What do you remember about this year?</p>
+      </div>
+
+      <section class="memories-section">
+        <h3>Memories</h3>
+        <div id="emptyYear" class="empty-year hidden">
+          <p>Nothing has been remembered from this year yet.</p>
+          <p>Take your time.</p>
+        </div>
+        <div id="memoryList" class="memory-list"></div>
+      </section>
+
+      <button id="showEditorButton" class="keep-button">Keep another memory</button>
+
+      <div id="memoryEditor" class="memory-box hidden">
+        <label for="memoryInput">Tell this year about something you remember...</label>
+        <textarea id="memoryInput" rows="7"></textarea>
+        <div class="editor-actions">
+          <button id="keepMemoryButton" class="keep-button">Keep this memory</button>
+          <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
+        </div>
+      </div>
     </section>
   </main>
 

@@ -97,26 +97,33 @@ body {
   color: #817667;
 }
 
+.brick.has-memories {
+  background: #d8b978;
+  border-color: #92713e;
+}
+
+.brick.future.has-memories {
+  background: #d8c7a6;
+}
+
+.brick.has-memories::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 50%;
+  background: rgba(55, 47, 40, 0.45);
+}
+
 .year-view {
-  max-width: 860px;
-  margin: 80px auto 0;
+  max-width: 900px;
+  margin: 60px auto 0;
   padding: 48px;
   background: var(--panel);
   border: 1px solid #d8cbb8;
-  border-radius: 24px;
+  border-radius: 28px;
   box-shadow: 0 20px 60px rgba(70, 55, 35, 0.08);
-  text-align: center;
-}
-
-.year-view h2 {
-  font-size: 52px;
-  margin: 24px 0 10px;
-  font-weight: 500;
-}
-
-.year-view p {
-  font-size: 24px;
-  color: var(--soft-text);
 }
 
 .back-button {
@@ -127,12 +134,101 @@ body {
   cursor: pointer;
 }
 
-.hidden {
-  display: none;
+.year-heading {
+  text-align: center;
+  margin: 24px 0 34px;
+}
+
+.year-heading h2 {
+  font-size: 60px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.year-heading p {
+  margin-top: 8px;
+  font-size: 24px;
+  color: var(--soft-text);
+}
+
+.year-invitation {
+  text-align: center;
+  margin-bottom: 44px;
+  font-size: 24px;
+  color: var(--soft-text);
+  line-height: 1.35;
+}
+
+.memories-section h3 {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
+.empty-year {
+  text-align: center;
+  margin: 30px auto;
+  padding: 36px;
+  max-width: 560px;
+  border: 1px solid #e3d7c6;
+  border-radius: 22px;
+  background: #fffaf0;
+  color: var(--soft-text);
+  font-size: 22px;
+  line-height: 1.45;
+}
+
+.memory-list {
+  margin-top: 20px;
+}
+
+.memory-card {
+  margin-top: 20px;
+  padding: 28px;
+  border-radius: 22px;
+  background: #fffaf0;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-card p {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.memory-card small {
+  display: block;
+  margin-top: 18px;
+  color: var(--soft-text);
+  font-size: 15px;
+}
+
+.keep-button {
+  display: block;
+  margin: 34px auto 0;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 26px;
+  background: var(--stone);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  margin-top: 16px;
+  border: none;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 18px;
+  cursor: pointer;
 }
 
 .memory-box {
-  margin-top: 38px;
+  margin-top: 34px;
   text-align: left;
 }
 
@@ -160,58 +256,12 @@ body {
   outline: 2px solid #cdb084;
 }
 
-.keep-button {
-  margin-top: 16px;
-  border: none;
-  border-radius: 999px;
-  padding: 14px 24px;
-  background: var(--stone);
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
+.editor-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.memory-list {
-  margin-top: 38px;
-  text-align: left;
-}
-
-.memory-card {
-  margin-top: 18px;
-  padding: 22px;
-  border-radius: 18px;
-  background: #fffaf0;
-  border: 1px solid #d8cbb8;
-}
-
-.memory-card p {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.55;
-  color: var(--text);
-}
-
-.memory-card small {
-  display: block;
-  margin-top: 14px;
-  color: var(--soft-text);
-}
-
-.brick.has-memories {
-  background: #d8b978;
-  border-color: #92713e;
-}
-
-.brick.future.has-memories {
-  background: #d8c7a6;
-}
-
-.brick.has-memories::after {
-  content: "";
-  display: block;
-  width: 8px;
-  height: 8px;
-  margin-top: 10px;
-  border-radius: 50%;
-  background: rgba(55, 47, 40, 0.45);
+.hidden {
+  display: none;
 }
