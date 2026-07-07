@@ -13,7 +13,14 @@
       <p>Every life has a story. This is yours.</p>
     </header>
 
-    <section id="wall" class="wall" aria-label="Home Wall"></section>
+    <section id="setupView" class="setup-view hidden">
+      <h2>Begin your Me-Wall</h2>
+      <p>What year were you born?</p>
+      <input id="birthYearInput" type="number" placeholder="1959" />
+      <button id="startButton" class="keep-button">Begin</button>
+    </section>
+
+    <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
 
     <section id="yearView" class="year-view hidden">
       <button id="backButton" class="back-button">← Home Wall</button>
@@ -48,6 +55,13 @@
         </div>
       </div>
     </section>
+
+    <footer id="lifeTools" class="life-tools hidden">
+      <button id="exportButton">Export my life</button>
+      <label for="importInput" class="import-label">Import my life</label>
+      <input id="importInput" type="file" accept="application/json" hidden />
+      <button id="resetButton">Start again</button>
+    </footer>
   </main>
 
   <script src="app.js"></script>

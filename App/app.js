@@ -1,15 +1,22 @@
-const birthYear = 1959;
 const currentYear = new Date().getFullYear();
-const futureHorizon = birthYear + 99;
-const storageKey = "mewall_memories_v1";
 
-const memories = loadMemories();
+const settingsKey = "mewall_settings_v1";
+const memoryKey = "mewall_memories_v1";
+
+let settings = loadSettings();
+let memories = loadMemories();
+let selectedYear = null;
+
+const setupView = document.getElementById("setupView");
+const birthYearInput = document.getElementById("birthYearInput");
+const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
 const yearView = document.getElementById("yearView");
 const yearTitle = document.getElementById("yearTitle");
 const yearAge = document.getElementById("yearAge");
 const backButton = document.getElementById("backButton");
+
 const memoryInput = document.getElementById("memoryInput");
 const keepMemoryButton = document.getElementById("keepMemoryButton");
 const showEditorButton = document.getElementById("showEditorButton");
@@ -18,10 +25,46 @@ const memoryEditor = document.getElementById("memoryEditor");
 const memoryList = document.getElementById("memoryList");
 const emptyYear = document.getElementById("emptyYear");
 
-let selectedYear = null;
+const lifeTools = document.getElementById("lifeTools");
+const exportButton = document.getElementById("exportButton");
+const importInput = document.getElementById("importInput");
+const resetButton = document.getElementById("resetButton");
+
+function initialise() {
+  if (!settings.birthYear) {
+    setupView.classList.remove("hidden");
+    return;
+  }
+
+  showWall();
+}
+
+function showWall() {
+  setupView.classList.add("hidden");
+  yearView.classList.add("hidden");
+  wall.classList.remove("hidden");
+  lifeTools.classList.remove("hidden");
+  createWall();
+}
+
+function startMeWall() {
+  const birthYear = Number(birthYearInput.value);
+
+  if (!birthYear || birthYear < 1850 || birthYear > currentYear) {
+    alert("Please enter a valid birth year.");
+    return;
+  }
+
+  settings.birthYear = birthYear;
+  saveSettings();
+  showWall();
+}
 
 function createWall() {
   wall.innerHTML = "";
+
+  const birthYear = settings.birthYear;
+  const futureHorizon = birthYear + 99;
 
   for (let year = birthYear; year <= futureHorizon; year++) {
     const age = year - birthYear;
@@ -119,12 +162,107 @@ function renderMemories() {
   });
 }
 
+function exportLife() {
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    product: "Me-Wall Genesis",
+    version: "0.1",
+    settings,
+    memories
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json"
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "me-wall-life-export.json";
+  link.click();
+
+  URL.revokeObjectURL(link.href);
+}
+
+function importLife(event) {
+  const file = event.target.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+
+      if (!data.settings || !data.settings.birthYear || !data.memories) {
+        alert("This does not look like a valid Me-Wall export.");
+        return;
+      }
+
+      settings = data.settings;
+      memories = data.memories;
+
+      saveSettings();
+      saveMemories();
+
+      alert("Your Me-Wall has been restored.");
+      showWall();
+    } catch {
+      alert("The import file could not be read.");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function resetMeWall() {
+  const confirmed = confirm(
+    "This will clear this browser's Me-Wall data. Export first if you want to keep it."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  localStorage.removeItem(settingsKey);
+  localStorage.removeItem(memoryKey);
+
+  settings = {};
+  memories = {};
+  selectedYear = null;
+
+  wall.classList.add("hidden");
+  yearView.classList.add("hidden");
+  lifeTools.classList.add("hidden");
+  setupView.classList.remove("hidden");
+}
+
+function saveSettings() {
+  localStorage.setItem(settingsKey, JSON.stringify(settings));
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem(settingsKey);
+
+  if (!saved) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+}
+
 function saveMemories() {
-  localStorage.setItem(storageKey, JSON.stringify(memories));
+  localStorage.setItem(memoryKey, JSON.stringify(memories));
 }
 
 function loadMemories() {
-  const saved = localStorage.getItem(storageKey);
+  const saved = localStorage.getItem(memoryKey);
 
   if (!saved) {
     return {};
@@ -156,10 +294,9 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-backButton.addEventListener("click", () => {
-  yearView.classList.add("hidden");
-  wall.classList.remove("hidden");
-});
+startButton.addEventListener("click", startMeWall);
+
+backButton.addEventListener("click", showWall);
 
 showEditorButton.addEventListener("click", () => {
   memoryEditor.classList.remove("hidden");
@@ -172,5 +309,8 @@ cancelMemoryButton.addEventListener("click", () => {
 });
 
 keepMemoryButton.addEventListener("click", keepMemory);
+exportButton.addEventListener("click", exportLife);
+importInput.addEventListener("change", importLife);
+resetButton.addEventListener("click", resetMeWall);
 
-createWall();
+initialise();
