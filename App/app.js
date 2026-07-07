@@ -1,8 +1,9 @@
 const birthYear = 1958;
 const currentYear = new Date().getFullYear();
 const futureHorizon = birthYear + 99;
+const storageKey = "mewall_memories_v1";
 
-const memories = {};
+const memories = loadMemories();
 
 const wall = document.getElementById("wall");
 const yearView = document.getElementById("yearView");
@@ -16,6 +17,8 @@ const memoryList = document.getElementById("memoryList");
 let selectedYear = null;
 
 function createWall() {
+  wall.innerHTML = "";
+
   for (let year = birthYear; year <= futureHorizon; year++) {
     const age = year - birthYear;
 
@@ -31,6 +34,10 @@ function createWall() {
       brick.classList.add("future");
     }
 
+    if (memories[year] && memories[year].length > 0) {
+      brick.classList.add("has-memories");
+    }
+
     brick.innerHTML = `
       <span class="year">${year}</span>
       <span class="age">Age ${age}</span>
@@ -41,7 +48,6 @@ function createWall() {
     wall.appendChild(brick);
   }
 }
-
 function openYear(year, age) {
   selectedYear = year;
 
@@ -68,11 +74,14 @@ function keepMemory() {
 
   memories[selectedYear].push({
     text,
-    createdAt: new Date()
+    createdAt: new Date().toISOString()
   });
+
+  saveMemories();
 
   memoryInput.value = "";
   renderMemories();
+  createWall();
 }
 
 function renderMemories() {
@@ -90,11 +99,39 @@ function renderMemories() {
 
     card.innerHTML = `
       <p>${escapeHtml(memory.text)}</p>
-      <small>Kept just now</small>
+      <small>${formatDate(memory.createdAt)}</small>
     `;
 
     memoryList.appendChild(card);
   });
+}
+
+function saveMemories() {
+  localStorage.setItem(storageKey, JSON.stringify(memories));
+}
+
+function loadMemories() {
+  const saved = localStorage.getItem(storageKey);
+
+  if (!saved) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Kept";
+  }
+
+  const date = new Date(value);
+
+  return `Kept ${date.toLocaleDateString()}`;
 }
 
 function escapeHtml(value) {

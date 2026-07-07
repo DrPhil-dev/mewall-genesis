@@ -196,3 +196,22 @@ body {
   margin-top: 14px;
   color: var(--soft-text);
 }
+
+.brick.has-memories {
+  background: #d8b978;
+  border-color: #92713e;
+}
+
+.brick.future.has-memories {
+  background: #d8c7a6;
+}
+
+.brick.has-memories::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 50%;
+  background: rgba(55, 47, 40, 0.45);
+}
