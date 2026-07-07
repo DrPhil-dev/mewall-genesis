@@ -130,3 +130,69 @@ body {
 .hidden {
   display: none;
 }
+
+.memory-box {
+  margin-top: 38px;
+  text-align: left;
+}
+
+.memory-box label {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.memory-box textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #d8cbb8;
+  border-radius: 18px;
+  padding: 18px;
+  font-size: 20px;
+  font-family: Georgia, "Times New Roman", serif;
+  background: #fffaf0;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.memory-box textarea:focus {
+  outline: 2px solid #cdb084;
+}
+
+.keep-button {
+  margin-top: 16px;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 24px;
+  background: var(--stone);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.memory-list {
+  margin-top: 38px;
+  text-align: left;
+}
+
+.memory-card {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 18px;
+  background: #fffaf0;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-card p {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.memory-card small {
+  display: block;
+  margin-top: 14px;
+  color: var(--soft-text);
+}
