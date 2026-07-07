@@ -8,6 +8,9 @@ let memories = loadMemories();
 let selectedYear = null;
 let editingMemoryIndex = null;
 
+let recognition = null;
+let isListening = false;
+
 const setupView = document.getElementById("setupView");
 const birthYearInput = document.getElementById("birthYearInput");
 const startButton = document.getElementById("startButton");
@@ -30,6 +33,10 @@ const lifeTools = document.getElementById("lifeTools");
 const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
+
+const speakButton = document.getElementById("speakButton");
+const stopSpeakingButton = document.getElementById("stopSpeakingButton");
+const listeningStatus = document.getElementById("listeningStatus");
 
 function initialise() {
   if (!settings.birthYear) {
@@ -177,12 +184,12 @@ function renderMemories() {
 
   if (yearMemories.length === 0) {
     emptyYear.classList.remove("hidden");
-    showEditorButton.textContent = "Keep your first memory";
+    showEditorButton.textContent = "Record your first memory";
     return;
   }
 
   emptyYear.classList.add("hidden");
-  showEditorButton.textContent = "Keep another memory";
+  showEditorButton.textContent = "Record another memory";
 
   yearMemories.forEach((memory, index) => {
     const card = document.createElement("article");
@@ -360,5 +367,67 @@ memoryList.addEventListener("click", (event) => {
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 resetButton.addEventListener("click", resetMeWall);
+
+function setupSpeechRecognition() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    speakButton.textContent = "Voice not supported in this browser";
+    speakButton.disabled = true;
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-AU";
+
+  recognition.onstart = () => {
+    isListening = true;
+    speakButton.classList.add("hidden");
+    stopSpeakingButton.classList.remove("hidden");
+    listeningStatus.classList.remove("hidden");
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    speakButton.classList.remove("hidden");
+    stopSpeakingButton.classList.add("hidden");
+    listeningStatus.classList.add("hidden");
+  };
+
+  recognition.onresult = (event) => {
+    let finalText = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript + " ";
+      }
+    }
+
+    if (finalText.trim()) {
+      const existingText = memoryInput.value.trim();
+
+      memoryInput.value = existingText
+        ? existingText + "\n\n" + finalText.trim()
+        : finalText.trim();
+    }
+  };
+}
+
+speakButton.addEventListener("click", () => {
+  if (recognition && !isListening) {
+    recognition.start();
+  }
+});
+
+stopSpeakingButton.addEventListener("click", () => {
+  if (recognition && isListening) {
+    recognition.stop();
+  }
+});
+
+setupSpeechRecognition();
 
 initialise();

@@ -44,16 +44,24 @@
         <div id="memoryList" class="memory-list"></div>
       </section>
 
-      <button id="showEditorButton" class="keep-button">Keep another memory</button>
+      <button id="showEditorButton" class="keep-button">Record another memory</button>
 
-      <div id="memoryEditor" class="memory-box hidden">
-        <label for="memoryInput">Tell this year about something you remember...</label>
-        <textarea id="memoryInput" rows="7"></textarea>
-        <div class="editor-actions">
-          <button id="keepMemoryButton" class="keep-button">Keep this memory</button>
-          <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
-        </div>
-      </div>
+<div id="memoryEditor" class="memory-box hidden">
+  <label for="memoryInput">Tell this year about something you remember...</label>
+
+  <div class="voice-actions">
+    <button id="speakButton" class="voice-button">🎙️ Speak memory</button>
+    <button id="stopSpeakingButton" class="voice-button hidden">Stop listening</button>
+    <span id="listeningStatus" class="listening-status hidden">I'm listening...</span>
+  </div>
+
+  <textarea id="memoryInput" rows="7"></textarea>
+
+  <div class="editor-actions">
+    <button id="keepMemoryButton" class="keep-button">Record memory</button>
+    <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
+  </div>
+</div>
     </section>
 
     <footer id="lifeTools" class="life-tools hidden">
