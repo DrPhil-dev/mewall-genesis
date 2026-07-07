@@ -320,3 +320,30 @@ body {
   font-size: 15px;
   cursor: pointer;
 }
+
+.memory-card p {
+  white-space: pre-wrap;
+  font-size: 18px;
+}
+
+.memory-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 14px;
+}
+
+.memory-actions button {
+  border: none;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.memory-actions button:hover {
+  text-decoration: underline;
+}
+
+.memory-box textarea {
+  font-size: 18px;
+}

@@ -6,6 +6,7 @@ const memoryKey = "mewall_memories_v1";
 let settings = loadSettings();
 let memories = loadMemories();
 let selectedYear = null;
+let editingMemoryIndex = null;
 
 const setupView = document.getElementById("setupView");
 const birthYearInput = document.getElementById("birthYearInput");
@@ -73,17 +74,9 @@ function createWall() {
     brick.className = "brick";
     brick.setAttribute("aria-label", `${year}, age ${age}`);
 
-    if (year === currentYear) {
-      brick.classList.add("current");
-    }
-
-    if (year > currentYear) {
-      brick.classList.add("future");
-    }
-
-    if (memories[year] && memories[year].length > 0) {
-      brick.classList.add("has-memories");
-    }
+    if (year === currentYear) brick.classList.add("current");
+    if (year > currentYear) brick.classList.add("future");
+    if (memories[year] && memories[year].length > 0) brick.classList.add("has-memories");
 
     brick.innerHTML = `
       <span class="year">${year}</span>
@@ -91,13 +84,13 @@ function createWall() {
     `;
 
     brick.addEventListener("click", () => openYear(year, age));
-
     wall.appendChild(brick);
   }
 }
 
 function openYear(year, age) {
   selectedYear = year;
+  editingMemoryIndex = null;
 
   wall.classList.add("hidden");
   yearView.classList.remove("hidden");
@@ -107,30 +100,72 @@ function openYear(year, age) {
   yearAge.textContent = `Age ${age}`;
 
   memoryInput.value = "";
+  keepMemoryButton.textContent = "Keep this memory";
+
   renderMemories();
+}
+
+function showEditor() {
+  editingMemoryIndex = null;
+  memoryInput.value = "";
+  keepMemoryButton.textContent = "Keep this memory";
+  memoryEditor.classList.remove("hidden");
+  memoryInput.focus();
 }
 
 function keepMemory() {
   const text = memoryInput.value.trim();
 
-  if (!text || selectedYear === null) {
-    return;
-  }
+  if (!text || selectedYear === null) return;
 
   if (!memories[selectedYear]) {
     memories[selectedYear] = [];
   }
 
-  memories[selectedYear].push({
-    text,
-    createdAt: new Date().toISOString()
-  });
+  if (editingMemoryIndex !== null) {
+    memories[selectedYear][editingMemoryIndex].text = text;
+    memories[selectedYear][editingMemoryIndex].updatedAt = new Date().toISOString();
+  } else {
+    memories[selectedYear].push({
+      text,
+      createdAt: new Date().toISOString(),
+      updatedAt: null
+    });
+  }
 
   saveMemories();
 
   memoryInput.value = "";
+  editingMemoryIndex = null;
+  keepMemoryButton.textContent = "Keep this memory";
   memoryEditor.classList.add("hidden");
 
+  renderMemories();
+  createWall();
+}
+
+function editMemory(index) {
+  const memory = memories[selectedYear][index];
+
+  editingMemoryIndex = index;
+  memoryInput.value = memory.text;
+  keepMemoryButton.textContent = "Update this memory";
+  memoryEditor.classList.remove("hidden");
+  memoryInput.focus();
+}
+
+function deleteMemory(index) {
+  const confirmed = confirm("Remove this memory from this year?");
+
+  if (!confirmed) return;
+
+  memories[selectedYear].splice(index, 1);
+
+  if (memories[selectedYear].length === 0) {
+    delete memories[selectedYear];
+  }
+
+  saveMemories();
   renderMemories();
   createWall();
 }
@@ -149,13 +184,21 @@ function renderMemories() {
   emptyYear.classList.add("hidden");
   showEditorButton.textContent = "Keep another memory";
 
-  yearMemories.forEach((memory) => {
+  yearMemories.forEach((memory, index) => {
     const card = document.createElement("article");
     card.className = "memory-card";
 
+    const dateText = memory.updatedAt
+      ? `${formatDate(memory.createdAt)} · Updated ${formatShortDate(memory.updatedAt)}`
+      : formatDate(memory.createdAt);
+
     card.innerHTML = `
       <p>${escapeHtml(memory.text)}</p>
-      <small>${formatDate(memory.createdAt)}</small>
+      <small>${dateText}</small>
+      <div class="memory-actions">
+        <button type="button" data-action="edit" data-index="${index}">Edit</button>
+        <button type="button" data-action="delete" data-index="${index}">Delete</button>
+      </div>
     `;
 
     memoryList.appendChild(card);
@@ -185,10 +228,7 @@ function exportLife() {
 
 function importLife(event) {
   const file = event.target.files[0];
-
-  if (!file) {
-    return;
-  }
+  if (!file) return;
 
   const reader = new FileReader();
 
@@ -222,9 +262,7 @@ function resetMeWall() {
     "This will clear this browser's Me-Wall data. Export first if you want to keep it."
   );
 
-  if (!confirmed) {
-    return;
-  }
+  if (!confirmed) return;
 
   localStorage.removeItem(settingsKey);
   localStorage.removeItem(memoryKey);
@@ -232,6 +270,7 @@ function resetMeWall() {
   settings = {};
   memories = {};
   selectedYear = null;
+  editingMemoryIndex = null;
 
   wall.classList.add("hidden");
   yearView.classList.add("hidden");
@@ -245,10 +284,7 @@ function saveSettings() {
 
 function loadSettings() {
   const saved = localStorage.getItem(settingsKey);
-
-  if (!saved) {
-    return {};
-  }
+  if (!saved) return {};
 
   try {
     return JSON.parse(saved);
@@ -263,10 +299,7 @@ function saveMemories() {
 
 function loadMemories() {
   const saved = localStorage.getItem(memoryKey);
-
-  if (!saved) {
-    return {};
-  }
+  if (!saved) return {};
 
   try {
     return JSON.parse(saved);
@@ -276,13 +309,15 @@ function loadMemories() {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "Kept";
-  }
+  if (!value) return "Kept";
 
   const date = new Date(value);
-
   return `Kept ${date.toLocaleDateString()}`;
+}
+
+function formatShortDate(value) {
+  const date = new Date(value);
+  return date.toLocaleDateString();
 }
 
 function escapeHtml(value) {
@@ -295,20 +330,33 @@ function escapeHtml(value) {
 }
 
 startButton.addEventListener("click", startMeWall);
-
 backButton.addEventListener("click", showWall);
-
-showEditorButton.addEventListener("click", () => {
-  memoryEditor.classList.remove("hidden");
-  memoryInput.focus();
-});
+showEditorButton.addEventListener("click", showEditor);
 
 cancelMemoryButton.addEventListener("click", () => {
   memoryInput.value = "";
+  editingMemoryIndex = null;
+  keepMemoryButton.textContent = "Keep this memory";
   memoryEditor.classList.add("hidden");
 });
 
 keepMemoryButton.addEventListener("click", keepMemory);
+
+memoryList.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+
+  const index = Number(button.dataset.index);
+
+  if (button.dataset.action === "edit") {
+    editMemory(index);
+  }
+
+  if (button.dataset.action === "delete") {
+    deleteMemory(index);
+  }
+});
+
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 resetButton.addEventListener("click", resetMeWall);
