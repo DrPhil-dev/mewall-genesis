@@ -486,7 +486,7 @@ showEditorButton.addEventListener("click", showEditor);
 cancelMemoryButton.addEventListener("click", () => {
   richMemoryInput.innerHTML = "";
   editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Record memory";
+  keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
 });
 
