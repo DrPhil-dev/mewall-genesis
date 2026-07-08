@@ -320,11 +320,13 @@ async function transcribeAudio(audioBlob) {
 
     const result = await response.json();
 
-    if (!response.ok) {
-      console.error(result);
-      alert("The transcription failed.");
-      return;
-    }
+if (!response.ok) {
+    console.error(result);
+
+    alert(JSON.stringify(result, null, 2));
+
+    return;
+}
 
     const transcript = result.text || "";
 
