@@ -2,14 +2,14 @@ const currentYear = new Date().getFullYear();
 
 const settingsKey = "mewall_settings_v1";
 const memoryKey = "mewall_memories_v1";
+const transcribeUrl = "https://mewall-transcribe.phil-003.workers.dev";
 
 let settings = loadSettings();
 let memories = loadMemories();
 let selectedYear = null;
 let editingMemoryIndex = null;
-
-let recognition = null;
-let isListening = false;
+let mediaRecorder = null;
+let audioChunks = [];
 
 const setupView = document.getElementById("setupView");
 const birthYearInput = document.getElementById("birthYearInput");
@@ -29,14 +29,14 @@ const memoryEditor = document.getElementById("memoryEditor");
 const memoryList = document.getElementById("memoryList");
 const emptyYear = document.getElementById("emptyYear");
 
+const recordAudioButton = document.getElementById("recordAudioButton");
+const stopRecordingButton = document.getElementById("stopRecordingButton");
+const recordingStatus = document.getElementById("recordingStatus");
+
 const lifeTools = document.getElementById("lifeTools");
 const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
-
-const speakButton = document.getElementById("speakButton");
-const stopSpeakingButton = document.getElementById("stopSpeakingButton");
-const listeningStatus = document.getElementById("listeningStatus");
 
 function initialise() {
   if (!settings.birthYear) {
@@ -83,7 +83,9 @@ function createWall() {
 
     if (year === currentYear) brick.classList.add("current");
     if (year > currentYear) brick.classList.add("future");
-    if (memories[year] && memories[year].length > 0) brick.classList.add("has-memories");
+    if (memories[year] && memories[year].length > 0) {
+      brick.classList.add("has-memories");
+    }
 
     brick.innerHTML = `
       <span class="year">${year}</span>
@@ -107,7 +109,7 @@ function openYear(year, age) {
   yearAge.textContent = `Age ${age}`;
 
   memoryInput.value = "";
-  keepMemoryButton.textContent = "Keep this memory";
+  keepMemoryButton.textContent = "Record memory";
 
   renderMemories();
 }
@@ -115,7 +117,7 @@ function openYear(year, age) {
 function showEditor() {
   editingMemoryIndex = null;
   memoryInput.value = "";
-  keepMemoryButton.textContent = "Keep this memory";
+  keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.remove("hidden");
   memoryInput.focus();
 }
@@ -144,7 +146,7 @@ function keepMemory() {
 
   memoryInput.value = "";
   editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Keep this memory";
+  keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.add("hidden");
 
   renderMemories();
@@ -156,7 +158,7 @@ function editMemory(index) {
 
   editingMemoryIndex = index;
   memoryInput.value = memory.text;
-  keepMemoryButton.textContent = "Update this memory";
+  keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
   memoryInput.focus();
 }
@@ -210,6 +212,86 @@ function renderMemories() {
 
     memoryList.appendChild(card);
   });
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      await transcribeAudio(audioBlob);
+
+      recordAudioButton.classList.remove("hidden");
+      stopRecordingButton.classList.add("hidden");
+      recordingStatus.classList.add("hidden");
+    };
+
+    mediaRecorder.start();
+
+    recordAudioButton.classList.add("hidden");
+    stopRecordingButton.classList.remove("hidden");
+    recordingStatus.textContent = "Recording...";
+    recordingStatus.classList.remove("hidden");
+  } catch (error) {
+    alert("Microphone access was not available.");
+    console.error(error);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    recordingStatus.textContent = "Transcribing...";
+    mediaRecorder.stop();
+  }
+}
+
+async function transcribeAudio(audioBlob) {
+  recordingStatus.textContent = "Transcribing...";
+
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "memory.webm");
+
+  try {
+    const response = await fetch(transcribeUrl, {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(result);
+      alert("The transcription failed.");
+      return;
+    }
+
+    const transcript = result.text || "";
+
+    if (transcript.trim()) {
+      const existingText = memoryInput.value.trim();
+
+      memoryInput.value = existingText
+        ? existingText + "\n\n" + transcript.trim()
+        : transcript.trim();
+    }
+  } catch (error) {
+    console.error(error);
+    alert("The transcription service could not be reached.");
+  } finally {
+    recordingStatus.textContent = "Recording...";
+  }
 }
 
 function exportLife() {
@@ -316,10 +398,10 @@ function loadMemories() {
 }
 
 function formatDate(value) {
-  if (!value) return "Kept";
+  if (!value) return "Recorded";
 
   const date = new Date(value);
-  return `Kept ${date.toLocaleDateString()}`;
+  return `Recorded ${date.toLocaleDateString()}`;
 }
 
 function formatShortDate(value) {
@@ -343,7 +425,7 @@ showEditorButton.addEventListener("click", showEditor);
 cancelMemoryButton.addEventListener("click", () => {
   memoryInput.value = "";
   editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Keep this memory";
+  keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.add("hidden");
 });
 
@@ -364,70 +446,11 @@ memoryList.addEventListener("click", (event) => {
   }
 });
 
+recordAudioButton.addEventListener("click", startRecording);
+stopRecordingButton.addEventListener("click", stopRecording);
+
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 resetButton.addEventListener("click", resetMeWall);
-
-function setupSpeechRecognition() {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    speakButton.textContent = "Voice not supported in this browser";
-    speakButton.disabled = true;
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = "en-AU";
-
-  recognition.onstart = () => {
-    isListening = true;
-    speakButton.classList.add("hidden");
-    stopSpeakingButton.classList.remove("hidden");
-    listeningStatus.classList.remove("hidden");
-  };
-
-  recognition.onend = () => {
-    isListening = false;
-    speakButton.classList.remove("hidden");
-    stopSpeakingButton.classList.add("hidden");
-    listeningStatus.classList.add("hidden");
-  };
-
-  recognition.onresult = (event) => {
-    let finalText = "";
-
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalText += event.results[i][0].transcript + " ";
-      }
-    }
-
-    if (finalText.trim()) {
-      const existingText = memoryInput.value.trim();
-
-      memoryInput.value = existingText
-        ? existingText + "\n\n" + finalText.trim()
-        : finalText.trim();
-    }
-  };
-}
-
-speakButton.addEventListener("click", () => {
-  if (recognition && !isListening) {
-    recognition.start();
-  }
-});
-
-stopSpeakingButton.addEventListener("click", () => {
-  if (recognition && isListening) {
-    recognition.stop();
-  }
-});
-
-setupSpeechRecognition();
 
 initialise();
