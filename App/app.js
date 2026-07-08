@@ -38,6 +38,9 @@ const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 
+const insertPhotoButton = document.getElementById("insertPhotoButton");
+const photoInput = document.getElementById("photoInput");
+
 function initialise() {
   if (!settings.birthYear) {
     setupView.classList.remove("hidden");
@@ -221,7 +224,7 @@ function renderMemories() {
 }
 
 async function handleImageFile(file) {
-  if (!file.type.startsWith("image/")) return;
+  if (!file || !file.type.startsWith("image/")) return;
 
   const reader = new FileReader();
 
@@ -322,9 +325,7 @@ async function transcribeAudio(audioBlob) {
 
 if (!response.ok) {
     console.error(result);
-
-    alert(JSON.stringify(result, null, 2));
-
+    alert("The transcription failed. Try again, or contact support");
     return;
 }
 
@@ -507,5 +508,19 @@ stopRecordingButton.addEventListener("click", stopRecording);
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 resetButton.addEventListener("click", resetMeWall);
+
+insertPhotoButton.addEventListener("click", () => {
+  photoInput.click();
+});
+
+photoInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+
+  if (file) {
+    handleImageFile(file);
+  }
+
+  photoInput.value = "";
+});
 
 initialise();
