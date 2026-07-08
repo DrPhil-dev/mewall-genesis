@@ -369,7 +369,7 @@ async function transcribeAudio(audioBlob) {
 function exportLife() {
   const exportData = {
     exportedAt: new Date().toISOString(),
-    product: "MyLivingWall",
+    product: "MyLifeWall",
     version: "0.1",
     settings,
     memories
@@ -381,7 +381,7 @@ function exportLife() {
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "MyLivingWall Backup.json";
+  link.download = "MyLifeWall Backup.json";
   link.click();
 
   URL.revokeObjectURL(link.href);
@@ -398,7 +398,7 @@ function importLife(event) {
       const data = JSON.parse(reader.result);
 
       if (!data.settings || !data.settings.birthYear || !data.memories) {
-        alert("This does not look like a valid MyLivingWall backup.");
+        alert("This does not look like a valid MyLifeWall backup.");
         return;
       }
 
@@ -408,7 +408,7 @@ function importLife(event) {
       saveSettings();
       saveMemories();
 
-      alert("Your MyLivingWall has been restored.");
+      alert("Your MyLifeWall has been restored.");
       showWall();
     } catch {
       alert("The import file could not be read.");
@@ -426,7 +426,7 @@ function createLifeBook() {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>MyLivingWall Life Book</title>
+      <title>MyLifeWall Life Book</title>
       <style>
         body {
           font-family: Georgia, "Times New Roman", serif;
@@ -495,7 +495,7 @@ function createLifeBook() {
       <button onclick="window.print()">Print or Save as PDF</button>
 
       <section class="title-page">
-        <h1>MyLivingWall</h1>
+        <h1>MyLifeWall</h1>
         <p>Every life has a story. This is yours.</p>
         <p>Life Book</p>
       </section>
@@ -536,7 +536,7 @@ function createLifeBook() {
 
 function resetMeWall() {
   const confirmed = confirm(
-    "This will clear this browser's MyLivingWall data. Export a backup first if you want to keep it."
+    "This will clear this browser's MyLifeWall data. Export a backup first if you want to keep it."
   );
 
   if (!confirmed) return;
