@@ -65,6 +65,16 @@ const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 
+/*
+Future exports
+
+□ Microsoft Word (.docx)
+□ PDF Life Book
+□ Printed hard-cover edition
+□ Family edition
+□ Selected years only
+*/
+
 function setupEditor() {
   editor = new Editor({
     element: document.querySelector("#tipTapEditor"),
@@ -368,7 +378,7 @@ async function transcribeAudio(audioBlob) {
 function exportLife() {
   const exportData = {
     exportedAt: new Date().toISOString(),
-    product: "Me-Wall Genesis",
+    product: "MyLivingWall",
     version: "0.1",
     settings,
     memories
@@ -380,7 +390,7 @@ function exportLife() {
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "me-wall-life-export.json";
+  link.download = "MyLivingWall Backup.json";
   link.click();
 
   URL.revokeObjectURL(link.href);
@@ -536,6 +546,8 @@ removePhotoButton.addEventListener("click", removePhoto);
 
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
-resetButton.addEventListener("click", resetMeWall);
+if (resetButton) {
+    resetButton.addEventListener("click", resetMeWall);
+}
 
 initialise();
