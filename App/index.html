@@ -46,22 +46,25 @@
 
       <button id="showEditorButton" class="keep-button">Record another memory</button>
 
-<div id="memoryEditor" class="memory-box hidden">
-  <label for="memoryInput">Tell this year about something you remember...</label>
+      <div id="memoryEditor" class="memory-box hidden">
+        <label>Tell this year about something you remember...</label>
 
-<div class="voice-actions">
-  <button id="recordAudioButton" class="voice-button">🎙️ Record memory</button>
-  <button id="stopRecordingButton" class="voice-button hidden">Stop recording</button>
-  <span id="recordingStatus" class="listening-status hidden">Recording...</span>
-</div>
+        <div class="voice-actions">
+          <button id="recordAudioButton" class="voice-button">🎙️ Record memory</button>
+          <button id="stopRecordingButton" class="voice-button hidden">Stop recording</button>
+          <span id="recordingStatus" class="listening-status hidden">Recording...</span>
+        </div>
 
-  <textarea id="memoryInput" rows="7"></textarea>
+        <div id="richMemoryInput" class="rich-memory-input" contenteditable="true">
+        </div>
 
-  <div class="editor-actions">
-    <button id="keepMemoryButton" class="keep-button">Record memory</button>
-    <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
-  </div>
-</div>
+        <p class="editor-hint">Type, paste, or drag a photo directly into this memory.</p>
+
+        <div class="editor-actions">
+          <button id="keepMemoryButton" class="keep-button">Record memory</button>
+          <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
+        </div>
+      </div>
     </section>
 
     <footer id="lifeTools" class="life-tools hidden">

@@ -21,7 +21,7 @@ const yearTitle = document.getElementById("yearTitle");
 const yearAge = document.getElementById("yearAge");
 const backButton = document.getElementById("backButton");
 
-const memoryInput = document.getElementById("memoryInput");
+const richMemoryInput = document.getElementById("richMemoryInput");
 const keepMemoryButton = document.getElementById("keepMemoryButton");
 const showEditorButton = document.getElementById("showEditorButton");
 const cancelMemoryButton = document.getElementById("cancelMemoryButton");
@@ -43,7 +43,6 @@ function initialise() {
     setupView.classList.remove("hidden");
     return;
   }
-
   showWall();
 }
 
@@ -76,8 +75,8 @@ function createWall() {
 
   for (let year = birthYear; year <= futureHorizon; year++) {
     const age = year - birthYear;
-
     const brick = document.createElement("button");
+
     brick.className = "brick";
     brick.setAttribute("aria-label", `${year}, age ${age}`);
 
@@ -108,7 +107,7 @@ function openYear(year, age) {
   yearTitle.textContent = `${year}`;
   yearAge.textContent = `Age ${age}`;
 
-  memoryInput.value = "";
+  richMemoryInput.innerHTML = "";
   keepMemoryButton.textContent = "Record memory";
 
   renderMemories();
@@ -116,27 +115,31 @@ function openYear(year, age) {
 
 function showEditor() {
   editingMemoryIndex = null;
-  memoryInput.value = "";
+  richMemoryInput.innerHTML = "";
   keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.remove("hidden");
-  memoryInput.focus();
+  richMemoryInput.focus();
 }
 
 function keepMemory() {
-  const text = memoryInput.value.trim();
+  const html = cleanMemoryHtml(richMemoryInput.innerHTML);
+  const plainText = richMemoryInput.textContent.trim();
+  const hasImage = html.includes("<img");
 
-  if (!text || selectedYear === null) return;
+  if ((!plainText && !hasImage) || selectedYear === null) return;
 
   if (!memories[selectedYear]) {
     memories[selectedYear] = [];
   }
 
   if (editingMemoryIndex !== null) {
-    memories[selectedYear][editingMemoryIndex].text = text;
+    memories[selectedYear][editingMemoryIndex].html = html;
+    memories[selectedYear][editingMemoryIndex].text = plainText;
     memories[selectedYear][editingMemoryIndex].updatedAt = new Date().toISOString();
   } else {
     memories[selectedYear].push({
-      text,
+      html,
+      text: plainText,
       createdAt: new Date().toISOString(),
       updatedAt: null
     });
@@ -144,7 +147,7 @@ function keepMemory() {
 
   saveMemories();
 
-  memoryInput.value = "";
+  richMemoryInput.innerHTML = "";
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.add("hidden");
@@ -157,15 +160,14 @@ function editMemory(index) {
   const memory = memories[selectedYear][index];
 
   editingMemoryIndex = index;
-  memoryInput.value = memory.text;
+  richMemoryInput.innerHTML = memory.html || `<p>${escapeHtml(memory.text || "")}</p>`;
   keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
-  memoryInput.focus();
+  richMemoryInput.focus();
 }
 
 function deleteMemory(index) {
   const confirmed = confirm("Remove this memory from this year?");
-
   if (!confirmed) return;
 
   memories[selectedYear].splice(index, 1);
@@ -201,8 +203,12 @@ function renderMemories() {
       ? `${formatDate(memory.createdAt)} · Updated ${formatShortDate(memory.updatedAt)}`
       : formatDate(memory.createdAt);
 
+    const content = memory.html
+      ? cleanMemoryHtml(memory.html)
+      : `<p>${escapeHtml(memory.text || "")}</p>`;
+
     card.innerHTML = `
-      <p>${escapeHtml(memory.text)}</p>
+      <div class="memory-content">${content}</div>
       <small>${dateText}</small>
       <div class="memory-actions">
         <button type="button" data-action="edit" data-index="${index}">Edit</button>
@@ -214,6 +220,51 @@ function renderMemories() {
   });
 }
 
+async function handleImageFile(file) {
+  if (!file.type.startsWith("image/")) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    insertImage(reader.result);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function insertImage(src) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = "Memory photograph";
+  richMemoryInput.appendChild(img);
+
+  const paragraph = document.createElement("p");
+  paragraph.innerHTML = "<br>";
+  richMemoryInput.appendChild(paragraph);
+}
+
+richMemoryInput.addEventListener("dragover", (event) => {
+  event.preventDefault();
+});
+
+richMemoryInput.addEventListener("drop", (event) => {
+  event.preventDefault();
+
+  const files = Array.from(event.dataTransfer.files);
+  files.forEach(handleImageFile);
+});
+
+richMemoryInput.addEventListener("paste", (event) => {
+  const items = Array.from(event.clipboardData.items);
+
+  items.forEach((item) => {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      handleImageFile(file);
+    }
+  });
+});
+
 async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -222,9 +273,7 @@ async function startRecording() {
     mediaRecorder = new MediaRecorder(stream);
 
     mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
-      }
+      if (event.data.size > 0) audioChunks.push(event.data);
     };
 
     mediaRecorder.onstop = async () => {
@@ -280,11 +329,7 @@ async function transcribeAudio(audioBlob) {
     const transcript = result.text || "";
 
     if (transcript.trim()) {
-      const existingText = memoryInput.value.trim();
-
-      memoryInput.value = existingText
-        ? existingText + "\n\n" + transcript.trim()
-        : transcript.trim();
+      insertParagraph(transcript.trim());
     }
   } catch (error) {
     console.error(error);
@@ -292,6 +337,12 @@ async function transcribeAudio(audioBlob) {
   } finally {
     recordingStatus.textContent = "Recording...";
   }
+}
+
+function insertParagraph(text) {
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  richMemoryInput.appendChild(paragraph);
 }
 
 function exportLife() {
@@ -409,6 +460,13 @@ function formatShortDate(value) {
   return date.toLocaleDateString();
 }
 
+function cleanMemoryHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/on\w+="[^"]*"/gi, "")
+    .replace(/on\w+='[^']*'/gi, "");
+}
+
 function escapeHtml(value) {
   return value
     .replaceAll("&", "&amp;")
@@ -423,7 +481,7 @@ backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
 
 cancelMemoryButton.addEventListener("click", () => {
-  memoryInput.value = "";
+  richMemoryInput.innerHTML = "";
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Record memory";
   memoryEditor.classList.add("hidden");
@@ -437,13 +495,8 @@ memoryList.addEventListener("click", (event) => {
 
   const index = Number(button.dataset.index);
 
-  if (button.dataset.action === "edit") {
-    editMemory(index);
-  }
-
-  if (button.dataset.action === "delete") {
-    deleteMemory(index);
-  }
+  if (button.dataset.action === "edit") editMemory(index);
+  if (button.dataset.action === "delete") deleteMemory(index);
 });
 
 recordAudioButton.addEventListener("click", startRecording);

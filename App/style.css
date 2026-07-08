@@ -371,3 +371,45 @@ body {
   font-size: 16px;
   font-style: italic;
 }
+
+.rich-memory-input {
+  min-height: 260px;
+  border: 1px solid #d8cbb8;
+  border-radius: 18px;
+  padding: 20px;
+  font-size: 18px;
+  line-height: 1.6;
+  background: #fffaf0;
+  color: var(--text);
+  outline: none;
+}
+
+.rich-memory-input:focus {
+  outline: 2px solid #cdb084;
+}
+
+.rich-memory-input img,
+.memory-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 22px auto;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+}
+
+.editor-hint {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--soft-text);
+  font-style: italic;
+}
+
+.memory-card .memory-content {
+  white-space: normal;
+}
+
+.memory-card .memory-content p {
+  font-size: 18px;
+  line-height: 1.6;
+}
