@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Me-Wall TipTap Test</title>
+  <style>
+    body {
+      margin: 40px;
+      font-family: Georgia, "Times New Roman", serif;
+      background: #f6f2ea;
+      color: #372f28;
+    }
+
+    .editor-shell {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fffdf8;
+      border: 1px solid #d8cbb8;
+      border-radius: 24px;
+      padding: 28px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid #d8cbb8;
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: #fffaf0;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #editor {
+      min-height: 360px;
+      border: 1px solid #d8cbb8;
+      border-radius: 18px;
+      padding: 22px;
+      background: #fffaf0;
+      font-size: 19px;
+      line-height: 1.65;
+    }
+
+    .tiptap {
+      outline: none;
+      min-height: 320px;
+    }
+
+    .tiptap img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 22px auto;
+      border-radius: 16px;
+      border: 1px solid #d8cbb8;
+    }
+
+    .output {
+      margin-top: 24px;
+      white-space: pre-wrap;
+      background: #fffaf0;
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid #d8cbb8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-shell">
+    <h1>TipTap Memory Editor Test</h1>
+
+    <div class="toolbar">
+      <button id="addPhotoButton">Add photo</button>
+      <button id="smallButton">Small photo</button>
+      <button id="mediumButton">Medium photo</button>
+      <button id="largeButton">Large photo</button>
+      <button id="showHtmlButton">Show stored memory</button>
+    </div>
+
+    <input id="photoInput" type="file" accept="image/*" hidden />
+
+    <div id="editor"></div>
+
+    <div id="output" class="output"></div>
+  </div>
+
+  <script type="module">
+    import { Editor } from 'https://esm.sh/@tiptap/core'
+    import StarterKit from 'https://esm.sh/@tiptap/starter-kit'
+    import Image from 'https://esm.sh/@tiptap/extension-image'
+
+    const editor = new Editor({
+      element: document.querySelector('#editor'),
+      extensions: [
+        StarterKit,
+        Image.configure({
+          inline: false,
+          allowBase64: true,
+        }),
+      ],
+      content: '<p>Write a memory here. Then add a photo.</p>',
+    })
+
+    const photoInput = document.querySelector('#photoInput')
+    const addPhotoButton = document.querySelector('#addPhotoButton')
+    const output = document.querySelector('#output')
+
+    addPhotoButton.addEventListener('click', () => {
+      photoInput.click()
+    })
+
+    photoInput.addEventListener('change', (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        editor.chain().focus().setImage({
+          src: reader.result,
+          alt: 'Memory photograph',
+        }).run()
+      }
+
+      reader.readAsDataURL(file)
+      photoInput.value = ''
+    })
+
+    function resizeSelectedImage(width) {
+      const image = document.querySelector('.ProseMirror-selectednode')
+
+      if (!image || image.tagName !== 'IMG') {
+        alert('Click a photo first, then choose a size.')
+        return
+      }
+
+      image.style.width = width
+      image.style.height = 'auto'
+    }
+
+    document.querySelector('#smallButton').addEventListener('click', () => {
+      resizeSelectedImage('35%')
+    })
+
+    document.querySelector('#mediumButton').addEventListener('click', () => {
+      resizeSelectedImage('60%')
+    })
+
+    document.querySelector('#largeButton').addEventListener('click', () => {
+      resizeSelectedImage('100%')
+    })
+
+    document.querySelector('#showHtmlButton').addEventListener('click', () => {
+      output.textContent = editor.getHTML()
+    })
+  </script>
+</body>
+</html>

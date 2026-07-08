@@ -1,5 +1,25 @@
-const currentYear = new Date().getFullYear();
+import { Editor } from "https://esm.sh/@tiptap/core";
+import StarterKit from "https://esm.sh/@tiptap/starter-kit";
+import Image from "https://esm.sh/@tiptap/extension-image";
 
+const CustomImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: "100%",
+        parseHTML: element =>
+          element.getAttribute("data-width") || element.style.width || "100%",
+        renderHTML: attributes => ({
+          "data-width": attributes.width,
+          style: `width: ${attributes.width}; height: auto;`
+        })
+      }
+    };
+  }
+});
+
+const currentYear = new Date().getFullYear();
 const settingsKey = "mewall_settings_v1";
 const memoryKey = "mewall_memories_v1";
 const transcribeUrl = "https://mewall-transcribe.phil-003.workers.dev";
@@ -10,6 +30,7 @@ let selectedYear = null;
 let editingMemoryIndex = null;
 let mediaRecorder = null;
 let audioChunks = [];
+let editor = null;
 
 const setupView = document.getElementById("setupView");
 const birthYearInput = document.getElementById("birthYearInput");
@@ -21,7 +42,6 @@ const yearTitle = document.getElementById("yearTitle");
 const yearAge = document.getElementById("yearAge");
 const backButton = document.getElementById("backButton");
 
-const richMemoryInput = document.getElementById("richMemoryInput");
 const keepMemoryButton = document.getElementById("keepMemoryButton");
 const showEditorButton = document.getElementById("showEditorButton");
 const cancelMemoryButton = document.getElementById("cancelMemoryButton");
@@ -33,19 +53,34 @@ const recordAudioButton = document.getElementById("recordAudioButton");
 const stopRecordingButton = document.getElementById("stopRecordingButton");
 const recordingStatus = document.getElementById("recordingStatus");
 
+const insertPhotoButton = document.getElementById("insertPhotoButton");
+const photoInput = document.getElementById("photoInput");
+const smallPhotoButton = document.getElementById("smallPhotoButton");
+const mediumPhotoButton = document.getElementById("mediumPhotoButton");
+const largePhotoButton = document.getElementById("largePhotoButton");
+const removePhotoButton = document.getElementById("removePhotoButton");
+
 const lifeTools = document.getElementById("lifeTools");
 const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 
-const insertPhotoButton = document.getElementById("insertPhotoButton");
-const photoInput = document.getElementById("photoInput");
+function setupEditor() {
+  editor = new Editor({
+    element: document.querySelector("#tipTapEditor"),
+    extensions: [StarterKit, CustomImage.configure({ allowBase64: true })],
+    content: "",
+  });
+}
 
 function initialise() {
+  setupEditor();
+
   if (!settings.birthYear) {
     setupView.classList.remove("hidden");
     return;
   }
+
   showWall();
 }
 
@@ -72,7 +107,6 @@ function startMeWall() {
 
 function createWall() {
   wall.innerHTML = "";
-
   const birthYear = settings.birthYear;
   const futureHorizon = birthYear + 99;
 
@@ -110,7 +144,7 @@ function openYear(year, age) {
   yearTitle.textContent = `${year}`;
   yearAge.textContent = `Age ${age}`;
 
-  richMemoryInput.innerHTML = "";
+  editor.commands.clearContent();
   keepMemoryButton.textContent = "Keep memory";
 
   renderMemories();
@@ -118,15 +152,15 @@ function openYear(year, age) {
 
 function showEditor() {
   editingMemoryIndex = null;
-  richMemoryInput.innerHTML = "";
+  editor.commands.clearContent();
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.remove("hidden");
-  richMemoryInput.focus();
+  editor.commands.focus();
 }
 
 function keepMemory() {
-  const html = cleanMemoryHtml(richMemoryInput.innerHTML);
-  const plainText = richMemoryInput.textContent.trim();
+  const html = editor.getHTML();
+  const plainText = editor.getText().trim();
   const hasImage = html.includes("<img");
 
   if ((!plainText && !hasImage) || selectedYear === null) return;
@@ -150,7 +184,7 @@ function keepMemory() {
 
   saveMemories();
 
-  richMemoryInput.innerHTML = "";
+  editor.commands.clearContent();
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
@@ -163,10 +197,10 @@ function editMemory(index) {
   const memory = memories[selectedYear][index];
 
   editingMemoryIndex = index;
-  richMemoryInput.innerHTML = memory.html || `<p>${escapeHtml(memory.text || "")}</p>`;
+  editor.commands.setContent(memory.html || `<p>${escapeHtml(memory.text || "")}</p>`);
   keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
-  richMemoryInput.focus();
+  editor.commands.focus();
 }
 
 function deleteMemory(index) {
@@ -223,50 +257,39 @@ function renderMemories() {
   });
 }
 
-async function handleImageFile(file) {
+function addPhoto() {
+  photoInput.click();
+}
+
+function insertPhoto(file) {
   if (!file || !file.type.startsWith("image/")) return;
 
   const reader = new FileReader();
 
   reader.onload = () => {
-    insertImage(reader.result);
+    editor.chain().focus().setImage({
+      src: reader.result,
+      alt: "Memory photograph",
+      width: "100%"
+    }).run();
   };
 
   reader.readAsDataURL(file);
 }
 
-function insertImage(src) {
-  const img = document.createElement("img");
-  img.src = src;
-  img.alt = "Memory photograph";
-  richMemoryInput.appendChild(img);
+function setPhotoSize(width) {
+  const success = editor.chain().focus().updateAttributes("image", {
+    width
+  }).run();
 
-  const paragraph = document.createElement("p");
-  paragraph.innerHTML = "<br>";
-  richMemoryInput.appendChild(paragraph);
+  if (!success) {
+    alert("Click a photo first, then choose a size.");
+  }
 }
 
-richMemoryInput.addEventListener("dragover", (event) => {
-  event.preventDefault();
-});
-
-richMemoryInput.addEventListener("drop", (event) => {
-  event.preventDefault();
-
-  const files = Array.from(event.dataTransfer.files);
-  files.forEach(handleImageFile);
-});
-
-richMemoryInput.addEventListener("paste", (event) => {
-  const items = Array.from(event.clipboardData.items);
-
-  items.forEach((item) => {
-    if (item.type.startsWith("image/")) {
-      const file = item.getAsFile();
-      handleImageFile(file);
-    }
-  });
-});
+function removePhoto() {
+  editor.chain().focus().deleteSelection().run();
+}
 
 async function startRecording() {
   try {
@@ -275,12 +298,12 @@ async function startRecording() {
     audioChunks = [];
     mediaRecorder = new MediaRecorder(stream);
 
-    mediaRecorder.ondataavailable = (event) => {
+    mediaRecorder.ondataavailable = event => {
       if (event.data.size > 0) audioChunks.push(event.data);
     };
 
     mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach(track => track.stop());
 
       const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
       await transcribeAudio(audioBlob);
@@ -323,16 +346,16 @@ async function transcribeAudio(audioBlob) {
 
     const result = await response.json();
 
-if (!response.ok) {
-    console.error(result);
-    alert("The transcription failed. Try again, or contact support");
-    return;
-}
+    if (!response.ok) {
+      console.error(result);
+      alert("I couldn't preserve that memory just now. Please try again.");
+      return;
+    }
 
     const transcript = result.text || "";
 
     if (transcript.trim()) {
-      insertParagraph(transcript.trim());
+      editor.chain().focus().insertContent(`<p>${escapeHtml(transcript.trim())}</p>`).run();
     }
   } catch (error) {
     console.error(error);
@@ -340,12 +363,6 @@ if (!response.ok) {
   } finally {
     recordingStatus.textContent = "Recording...";
   }
-}
-
-function insertParagraph(text) {
-  const paragraph = document.createElement("p");
-  paragraph.textContent = text;
-  richMemoryInput.appendChild(paragraph);
 }
 
 function exportLife() {
@@ -484,7 +501,7 @@ backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
 
 cancelMemoryButton.addEventListener("click", () => {
-  richMemoryInput.innerHTML = "";
+  editor.commands.clearContent();
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
@@ -492,7 +509,7 @@ cancelMemoryButton.addEventListener("click", () => {
 
 keepMemoryButton.addEventListener("click", keepMemory);
 
-memoryList.addEventListener("click", (event) => {
+memoryList.addEventListener("click", event => {
   const button = event.target.closest("button");
   if (!button) return;
 
@@ -505,22 +522,20 @@ memoryList.addEventListener("click", (event) => {
 recordAudioButton.addEventListener("click", startRecording);
 stopRecordingButton.addEventListener("click", stopRecording);
 
+insertPhotoButton.addEventListener("click", addPhoto);
+
+photoInput.addEventListener("change", event => {
+  insertPhoto(event.target.files[0]);
+  photoInput.value = "";
+});
+
+smallPhotoButton.addEventListener("click", () => setPhotoSize("35%"));
+mediumPhotoButton.addEventListener("click", () => setPhotoSize("60%"));
+largePhotoButton.addEventListener("click", () => setPhotoSize("100%"));
+removePhotoButton.addEventListener("click", removePhoto);
+
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 resetButton.addEventListener("click", resetMeWall);
-
-insertPhotoButton.addEventListener("click", () => {
-  photoInput.click();
-});
-
-photoInput.addEventListener("change", (event) => {
-  const file = event.target.files[0];
-
-  if (file) {
-    handleImageFile(file);
-  }
-
-  photoInput.value = "";
-});
 
 initialise();
