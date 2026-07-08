@@ -111,7 +111,7 @@ function openYear(year, age) {
   yearAge.textContent = `Age ${age}`;
 
   richMemoryInput.innerHTML = "";
-  keepMemoryButton.textContent = "Record memory";
+  keepMemoryButton.textContent = "Keep memory";
 
   renderMemories();
 }
@@ -119,7 +119,7 @@ function openYear(year, age) {
 function showEditor() {
   editingMemoryIndex = null;
   richMemoryInput.innerHTML = "";
-  keepMemoryButton.textContent = "Record memory";
+  keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.remove("hidden");
   richMemoryInput.focus();
 }
@@ -152,7 +152,7 @@ function keepMemory() {
 
   richMemoryInput.innerHTML = "";
   editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Record memory";
+  keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
 
   renderMemories();
