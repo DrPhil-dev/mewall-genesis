@@ -64,16 +64,7 @@ const lifeTools = document.getElementById("lifeTools");
 const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
-
-/*
-Future exports
-
-□ Microsoft Word (.docx)
-□ PDF Life Book
-□ Printed hard-cover edition
-□ Family edition
-□ Selected years only
-*/
+const lifeBookButton = document.getElementById("lifeBookButton");
 
 function setupEditor() {
   editor = new Editor({
@@ -407,7 +398,7 @@ function importLife(event) {
       const data = JSON.parse(reader.result);
 
       if (!data.settings || !data.settings.birthYear || !data.memories) {
-        alert("This does not look like a valid Me-Wall export.");
+        alert("This does not look like a valid MyLivingWall backup.");
         return;
       }
 
@@ -417,7 +408,7 @@ function importLife(event) {
       saveSettings();
       saveMemories();
 
-      alert("Your Me-Wall has been restored.");
+      alert("Your MyLivingWall has been restored.");
       showWall();
     } catch {
       alert("The import file could not be read.");
@@ -427,9 +418,125 @@ function importLife(event) {
   reader.readAsText(file);
 }
 
+function createLifeBook() {
+  const birthYear = settings.birthYear;
+  const years = Object.keys(memories).sort((a, b) => Number(a) - Number(b));
+
+  let bookHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>MyLivingWall Life Book</title>
+      <style>
+        body {
+          font-family: Georgia, "Times New Roman", serif;
+          color: #372f28;
+          background: #fffdf8;
+          margin: 48px;
+          line-height: 1.6;
+        }
+
+        .title-page {
+          text-align: center;
+          margin-top: 120px;
+          margin-bottom: 120px;
+          page-break-after: always;
+        }
+
+        h1 {
+          font-size: 48px;
+          font-weight: 500;
+        }
+
+        h2 {
+          font-size: 34px;
+          margin-top: 60px;
+          border-bottom: 1px solid #d8cbb8;
+          padding-bottom: 12px;
+        }
+
+        .memory {
+          margin: 28px 0;
+          padding: 24px;
+          border: 1px solid #d8cbb8;
+          border-radius: 18px;
+          background: #fffaf0;
+          page-break-inside: avoid;
+        }
+
+        .memory img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 22px auto;
+          border-radius: 14px;
+        }
+
+        small {
+          color: #6d6254;
+        }
+
+        @media print {
+          body {
+            margin: 28mm;
+          }
+
+          button {
+            display: none;
+          }
+
+          .year-chapter {
+            page-break-before: always;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <button onclick="window.print()">Print or Save as PDF</button>
+
+      <section class="title-page">
+        <h1>MyLivingWall</h1>
+        <p>Every life has a story. This is yours.</p>
+        <p>Life Book</p>
+      </section>
+  `;
+
+  years.forEach((year) => {
+    const age = Number(year) - birthYear;
+    const yearMemories = memories[year] || [];
+
+    bookHtml += `
+      <section class="year-chapter">
+        <h2>${year} — Age ${age}</h2>
+    `;
+
+    yearMemories.forEach((memory) => {
+      const content = memory.html || `<p>${escapeHtml(memory.text || "")}</p>`;
+      bookHtml += `
+        <article class="memory">
+          ${cleanMemoryHtml(content)}
+          <small>${formatDate(memory.createdAt)}</small>
+        </article>
+      `;
+    });
+
+    bookHtml += `</section>`;
+  });
+
+  bookHtml += `
+    </body>
+    </html>
+  `;
+
+  const bookWindow = window.open("", "_blank");
+  bookWindow.document.open();
+  bookWindow.document.write(bookHtml);
+  bookWindow.document.close();
+}
+
 function resetMeWall() {
   const confirmed = confirm(
-    "This will clear this browser's Me-Wall data. Export first if you want to keep it."
+    "This will clear this browser's MyLivingWall data. Export a backup first if you want to keep it."
   );
 
   if (!confirmed) return;
@@ -546,8 +653,13 @@ removePhotoButton.addEventListener("click", removePhoto);
 
 exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
+
 if (resetButton) {
-    resetButton.addEventListener("click", resetMeWall);
+  resetButton.addEventListener("click", resetMeWall);
+}
+
+if (lifeBookButton) {
+  lifeBookButton.addEventListener("click", createLifeBook);
 }
 
 initialise();
