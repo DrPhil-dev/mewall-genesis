@@ -154,57 +154,24 @@ function startMeWall() {
   showWall();
 }
 
-const BRICK_WIDTH = 104;
-const BRICK_GAP = 10;
-const MIN_BRICKS_PER_ROW = 4;
-
-// Works out how many bricks actually fit the wall's current width, so rows
-// are built to the real container instead of assuming a fixed 1260px design.
-function getWallLayout() {
-  const styles = getComputedStyle(wall);
-  const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-  const paddingRight = parseFloat(styles.paddingRight) || 0;
-
-  // clientWidth already excludes the border, so subtracting padding gives
-  // the exact content width the brick rows render into.
-  const availableWidth = wall.clientWidth - paddingLeft - paddingRight;
-
-  const unit = BRICK_WIDTH + BRICK_GAP;
-
-  // n bricks with (n-1) gaps between them take n*unit - gap of space.
-  // Solve n*unit - gap <= availableWidth for the largest whole n.
-  let bricksPerRow = Math.floor((availableWidth + BRICK_GAP) / unit);
-  bricksPerRow = Math.max(bricksPerRow, MIN_BRICKS_PER_ROW);
-
-  // The staggered row always has one fewer brick, shifted in by exactly
-  // half a brick-and-gap on each side, so both row types come out the
-  // same total width and stay perfectly centred and interlocked.
-  const staggerBricksPerRow = bricksPerRow - 1;
-  const staggerOffset = unit / 2;
-
-  return { bricksPerRow, staggerBricksPerRow, staggerOffset };
-}
-
 function createWall() {
   wall.innerHTML = "";
 
   const birthYear = settings.birthYear;
   const futureHorizon = birthYear + 99;
-  const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
   let year = birthYear;
   let rowIndex = 0;
 
   while (year <= futureHorizon) {
     const isOffsetRow = rowIndex % 2 === 1;
-    const rowSize = isOffsetRow ? staggerBricksPerRow : bricksPerRow;
+    const rowSize = isOffsetRow ? 9 : 10;
 
     const row = document.createElement("div");
     row.className = isOffsetRow ? "brick-row offset-row" : "brick-row";
 
     if (isOffsetRow) {
-      row.style.paddingLeft = `${staggerOffset}px`;
-      row.style.paddingRight = `${staggerOffset}px`;
+      row.appendChild(createHalfBrick());
     }
 
     for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
@@ -213,19 +180,20 @@ function createWall() {
       year++;
     }
 
+    if (isOffsetRow) {
+      row.appendChild(createHalfBrick());
+    }
+
     wall.appendChild(row);
     rowIndex++;
   }
 }
 
-// Rebuild the wall if the window is resized while it's visible, so the
-// brick count always matches the space actually available.
-let wallResizeTimeout = null;
-window.addEventListener("resize", () => {
-  if (wall.classList.contains("hidden")) return;
-  clearTimeout(wallResizeTimeout);
-  wallResizeTimeout = setTimeout(createWall, 150);
-});
+function createHalfBrick() {
+  const halfBrick = document.createElement("div");
+  halfBrick.className = "half-brick";
+  return halfBrick;
+}
 
 function createBrick(year, age) {
   const brick = document.createElement("button");
@@ -484,7 +452,7 @@ function exportLife() {
   const exportData = {
     exportedAt: new Date().toISOString(),
     product: "MyLifeWall",
-    version: "1.0",
+    version: "0.1",
     settings,
     memories
   };
@@ -535,13 +503,12 @@ function importLife(event) {
 function createLifeBook() {
   const birthYear = settings.birthYear;
   const years = Object.keys(memories).sort((a, b) => Number(a) - Number(b));
-  const owner = settings.name || "My Life";
 
   let bookHtml = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${escapeHtml(owner)} - MyLifeWall Life Book</title>
+      <title>MyLifeWall Life Book</title>
       <style>
         body {
           font-family: Georgia, "Times New Roman", serif;
@@ -610,9 +577,9 @@ function createLifeBook() {
       <button onclick="window.print()">Print or Save as PDF</button>
 
       <section class="title-page">
-        <h1>${escapeHtml(owner)}</h1>
-        <p>My Life Wall</p>
+        <h1>MyLifeWall</h1>
         <p>Every life has a story. This is yours.</p>
+        <p>Life Book</p>
       </section>
   `;
 
@@ -622,7 +589,7 @@ function createLifeBook() {
 
     bookHtml += `
       <section class="year-chapter">
-        <h2>${year} - Age ${age}</h2>
+        <h2>${year} — Age ${age}</h2>
     `;
 
     yearMemories.forEach((memory) => {

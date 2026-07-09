@@ -9,7 +9,7 @@
   --future: #e9dfce;
   --text: #372f28;
   --soft-text: #6d6254;
-  --mortar: #decaa8;
+  --mortar: #e8d9bf;
 }
 
 * {
@@ -52,18 +52,17 @@ body {
 }
 
 .wall {
-  width: min(100%, 1260px);
-  max-width: 1260px;
+  max-width: 1220px;
   margin: 0 auto;
-  padding: 42px 40px;
+  padding: 44px 42px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(255, 249, 225, 0.72), transparent 42%),
-    linear-gradient(180deg, #ead8b8, var(--mortar));
-  border: 1px solid #cdb58e;
-  border-radius: 20px;
+    radial-gradient(circle at 50% 0%, rgba(255, 250, 230, 0.72), transparent 42%),
+    linear-gradient(180deg, #efe0c5, var(--mortar));
+  border: 1px solid #d3bea0;
+  border-radius: 22px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.52),
-    inset 0 0 46px rgba(120, 88, 45, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 0 40px rgba(120, 88, 45, 0.08),
     0 24px 70px rgba(84, 64, 36, 0.12);
   overflow: hidden;
 }
@@ -79,41 +78,46 @@ body {
   margin-bottom: 0;
 }
 
-.offset-row {
-  transform: none;
-  /* left/right padding is now set inline by app.js, calculated from the
-     wall's actual width so the stagger always matches the brick count */
+.half-brick,
+.brick {
+  height: 76px;
+  border-radius: 9px;
+  border: 1px solid rgba(155, 124, 82, 0.78);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.28), transparent 34%),
+    linear-gradient(145deg, var(--stone-light), var(--stone));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -8px 15px rgba(110, 80, 40, 0.07),
+    0 3px 8px rgba(84, 64, 36, 0.10);
+}
+
+.half-brick {
+  width: 55px;
+  flex: 0 0 55px;
+  opacity: 0.48;
+  pointer-events: none;
 }
 
 .brick {
-  width: 104px;
-  flex: 0 0 104px;
-  height: 76px;
-  border-radius: 8px;
-  border: 1px solid rgba(150, 119, 78, 0.82);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.25), transparent 35%),
-    linear-gradient(145deg, var(--stone-light), var(--stone));
+  width: 112px;
+  flex: 0 0 112px;
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  padding: 13px 15px;
+  padding: 13px 14px;
   transition: transform 350ms ease, box-shadow 350ms ease, filter 350ms ease;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    inset 0 -8px 14px rgba(110, 80, 40, 0.08),
-    0 3px 7px rgba(84, 64, 36, 0.10);
 }
 
 .brick:nth-child(4n) {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.22), transparent 35%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.26), transparent 34%),
     linear-gradient(145deg, #f1e5d0, #d4bd98);
 }
 
 .brick:nth-child(7n) {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.20), transparent 35%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), transparent 34%),
     linear-gradient(145deg, #e8d5b7, #cdb58e);
 }
 
@@ -122,8 +126,8 @@ body {
   transform: translateY(-1px);
   filter: brightness(1.025);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 -8px 14px rgba(110, 80, 40, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -8px 15px rgba(110, 80, 40, 0.07),
     0 8px 16px rgba(70, 55, 35, 0.14);
   outline: none;
 }
@@ -142,17 +146,17 @@ body {
 
 .brick.current {
   background:
-    radial-gradient(circle at 42% 18%, rgba(255, 249, 218, 0.72), transparent 48%),
+    radial-gradient(circle at 50% 18%, rgba(255, 248, 210, 0.7), transparent 46%),
     linear-gradient(145deg, var(--cream-light), var(--gold-light));
   border-color: #b88230;
   box-shadow:
-    inset 0 0 14px rgba(255, 241, 190, 0.56),
-    0 5px 12px rgba(145, 90, 24, 0.14);
+    inset 0 0 16px rgba(255, 241, 190, 0.62),
+    0 5px 14px rgba(145, 90, 24, 0.16);
 }
 
 .brick.future {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.36), transparent 35%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 34%),
     linear-gradient(145deg, #f5efe5, var(--future));
   border-color: #d5c6af;
   color: #8a7f70;
@@ -160,12 +164,12 @@ body {
 
 .brick.has-memories {
   background:
-    radial-gradient(circle at 42% 22%, rgba(255, 238, 184, 0.70), transparent 52%),
+    radial-gradient(circle at 50% 22%, rgba(255, 238, 184, 0.72), transparent 50%),
     linear-gradient(145deg, #edca82, #d0a155);
   border-color: #9b6f31;
   box-shadow:
-    inset 0 0 14px rgba(255, 222, 138, 0.50),
-    0 5px 13px rgba(120, 80, 30, 0.14);
+    inset 0 0 16px rgba(255, 222, 138, 0.55),
+    0 5px 14px rgba(120, 80, 30, 0.15);
 }
 
 .brick.future.has-memories {

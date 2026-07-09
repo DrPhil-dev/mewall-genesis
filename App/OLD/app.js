@@ -170,29 +170,15 @@ function createWall() {
     const row = document.createElement("div");
     row.className = isOffsetRow ? "brick-row offset-row" : "brick-row";
 
-    if (isOffsetRow) {
-      row.appendChild(createHalfBrick());
-    }
-
     for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
       const age = year - birthYear;
       row.appendChild(createBrick(year, age));
       year++;
     }
 
-    if (isOffsetRow) {
-      row.appendChild(createHalfBrick());
-    }
-
     wall.appendChild(row);
     rowIndex++;
   }
-}
-
-function createHalfBrick() {
-  const halfBrick = document.createElement("div");
-  halfBrick.className = "half-brick";
-  return halfBrick;
 }
 
 function createBrick(year, age) {
@@ -452,7 +438,7 @@ function exportLife() {
   const exportData = {
     exportedAt: new Date().toISOString(),
     product: "MyLifeWall",
-    version: "0.1",
+    version: "1.0",
     settings,
     memories
   };
@@ -503,12 +489,13 @@ function importLife(event) {
 function createLifeBook() {
   const birthYear = settings.birthYear;
   const years = Object.keys(memories).sort((a, b) => Number(a) - Number(b));
+  const owner = settings.name || "My Life";
 
   let bookHtml = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>MyLifeWall Life Book</title>
+      <title>${escapeHtml(owner)} - MyLifeWall Life Book</title>
       <style>
         body {
           font-family: Georgia, "Times New Roman", serif;
@@ -577,9 +564,9 @@ function createLifeBook() {
       <button onclick="window.print()">Print or Save as PDF</button>
 
       <section class="title-page">
-        <h1>MyLifeWall</h1>
+        <h1>${escapeHtml(owner)}</h1>
+        <p>My Life Wall</p>
         <p>Every life has a story. This is yours.</p>
-        <p>Life Book</p>
       </section>
   `;
 
@@ -589,7 +576,7 @@ function createLifeBook() {
 
     bookHtml += `
       <section class="year-chapter">
-        <h2>${year} — Age ${age}</h2>
+        <h2>${year} - Age ${age}</h2>
     `;
 
     yearMemories.forEach((memory) => {
