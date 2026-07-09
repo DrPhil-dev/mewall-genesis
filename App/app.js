@@ -277,6 +277,19 @@ function setupEditor() {
     ],
     content: "",
     editorProps: {
+      // Belt-and-braces #2: contenteditable has its own built-in "drag the
+      // current selection" behaviour, which is separate from any individual
+      // element's draggable attribute — that's almost certainly what was
+      // still triggering a native drag despite CustomImage's own dragstart
+      // guards. Blocking dragstart at the whole editor's root catches it
+      // regardless of exactly what inside the editor triggered it.
+      handleDOMEvents: {
+        dragstart(view, event) {
+          event.preventDefault();
+          return true;
+        }
+      },
+
       handleDrop(view, event) {
         const files = Array.from(event.dataTransfer?.files || []);
         const image = files.find(file => file.type.startsWith("image/"));
