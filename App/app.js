@@ -483,6 +483,9 @@ function keepMemory() {
     memories[selectedYear] = [];
   }
 
+  const isNewEntry = editingMemoryIndex === null;
+  const previousEntry = isNewEntry ? null : { ...memories[selectedYear][editingMemoryIndex] };
+
   if (editingMemoryIndex !== null) {
     memories[selectedYear][editingMemoryIndex].html = html;
     memories[selectedYear][editingMemoryIndex].text = plainText;
@@ -496,7 +499,23 @@ function keepMemory() {
     });
   }
 
-  saveMemories();
+  if (!saveMemories()) {
+    // Undo the in-memory change so it matches what's actually stored,
+    // rather than looking saved when it isn't.
+    if (isNewEntry) {
+      memories[selectedYear].pop();
+      if (memories[selectedYear].length === 0) delete memories[selectedYear];
+    } else if (previousEntry) {
+      memories[selectedYear][editingMemoryIndex] = previousEntry;
+    }
+
+    alert(
+      "This memory couldn't be saved — photo storage on this device is full. " +
+      "Try removing or shrinking the photo, exporting a backup and clearing older memories, " +
+      "then keep the memory again."
+    );
+    return;
+  }
 
   editor.commands.clearContent();
   editingMemoryIndex = null;
@@ -527,7 +546,10 @@ function deleteMemory(index) {
     delete memories[selectedYear];
   }
 
-  saveMemories();
+  if (!saveMemories()) {
+    alert("Something went wrong saving that change. Please try again.");
+  }
+
   renderMemories();
   createWall();
 }
@@ -575,20 +597,73 @@ function addPhoto() {
   photoInput.click();
 }
 
+const MAX_PHOTO_DIMENSION = 1600;
+const PHOTO_JPEG_QUALITY = 0.82;
+
+// Phone camera photos are often 3–5MB+ at full resolution, and every byte
+// of that gets stored as base64 text in localStorage (which has a hard
+// 5–10MB-ish ceiling set by the browser). Shrinking to a sensible display
+// size and re-encoding as JPEG massively cuts that down before it's saved.
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(reader.error || new Error("Could not read that photo."));
+
+    reader.onload = () => {
+      const img = new window.Image();
+
+      img.onerror = () => reject(new Error("Could not read that photo."));
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > MAX_PHOTO_DIMENSION || height > MAX_PHOTO_DIMENSION) {
+          if (width >= height) {
+            height = Math.round((height / width) * MAX_PHOTO_DIMENSION);
+            width = MAX_PHOTO_DIMENSION;
+          } else {
+            width = Math.round((width / height) * MAX_PHOTO_DIMENSION);
+            height = MAX_PHOTO_DIMENSION;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        // Fill white first so transparent PNGs don't turn black when
+        // flattened into JPEG (which has no transparency channel).
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        resolve(canvas.toDataURL("image/jpeg", PHOTO_JPEG_QUALITY));
+      };
+
+      img.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 function insertPhoto(file) {
   if (!file || !file.type.startsWith("image/")) return;
 
-  const reader = new FileReader();
-
-  reader.onload = () => {
-    editor.chain().focus().setImage({
-      src: reader.result,
-      alt: "Memory photograph",
-      width: DEFAULT_PHOTO_WIDTH
-    }).run();
-  };
-
-  reader.readAsDataURL(file);
+  compressImageFile(file)
+    .then(dataUrl => {
+      editor.chain().focus().setImage({
+        src: dataUrl,
+        alt: "Memory photograph",
+        width: DEFAULT_PHOTO_WIDTH
+      }).run();
+    })
+    .catch(error => {
+      console.error("Could not add photo:", error);
+      alert("That photo couldn't be added. Please try a different one.");
+    });
 }
 
 function setPhotoSize(width) {
@@ -719,7 +794,11 @@ function importLife(event) {
       memories = data.memories;
 
       saveSettings();
-      saveMemories();
+
+      if (!saveMemories()) {
+        alert("That backup was read, but it's too large to store on this device (storage is full). Try importing on a device with more free space.");
+        return;
+      }
 
       alert("Your MyLifeWall has been restored.");
       showWall();
@@ -885,7 +964,17 @@ function loadSettings() {
 }
 
 function saveMemories() {
-  localStorage.setItem(memoryKey, JSON.stringify(memories));
+  try {
+    localStorage.setItem(memoryKey, JSON.stringify(memories));
+    return true;
+  } catch (error) {
+    // Most commonly a QuotaExceededError — this device's local storage
+    // (shared across the whole browser, not just this app) is full,
+    // usually from accumulated photos. Report it instead of losing the
+    // save silently.
+    console.error("Could not save memories:", error);
+    return false;
+  }
 }
 
 function loadMemories() {
