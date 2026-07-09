@@ -7,9 +7,9 @@ const CustomImage = Image.extend({
     return {
       ...this.parent?.(),
       width: {
-        default: "100%",
+        default: "35%",
         parseHTML: element =>
-          element.getAttribute("data-width") || element.style.width || "100%",
+          element.getAttribute("data-width") || element.style.width || "35%",
         renderHTML: attributes => ({
           "data-width": attributes.width,
           style: `width: ${attributes.width}; height: auto;`
@@ -23,6 +23,7 @@ const currentYear = new Date().getFullYear();
 const settingsKey = "mewall_settings_v1";
 const memoryKey = "mewall_memories_v1";
 const transcribeUrl = "https://mewall-transcribe.phil-003.workers.dev";
+const DEFAULT_PHOTO_WIDTH = "35%";
 
 let settings = loadSettings();
 let memories = loadMemories();
@@ -67,8 +68,6 @@ const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 const lifeBookButton = document.getElementById("lifeBookButton");
-
-const DEFAULT_PHOTO_WIDTH = "35%";
 
 function setupEditor() {
   editor = new Editor({
@@ -157,30 +156,64 @@ function startMeWall() {
 
 function createWall() {
   wall.innerHTML = "";
+
   const birthYear = settings.birthYear;
   const futureHorizon = birthYear + 99;
 
-  for (let year = birthYear; year <= futureHorizon; year++) {
-    const age = year - birthYear;
-    const brick = document.createElement("button");
+  let year = birthYear;
+  let rowIndex = 0;
 
-    brick.className = "brick";
-    brick.setAttribute("aria-label", `${year}, age ${age}`);
+  while (year <= futureHorizon) {
+    const isOffsetRow = rowIndex % 2 === 1;
+    const rowSize = isOffsetRow ? 9 : 10;
 
-    if (year === currentYear) brick.classList.add("current");
-    if (year > currentYear) brick.classList.add("future");
-    if (memories[year] && memories[year].length > 0) {
-      brick.classList.add("has-memories");
+    const row = document.createElement("div");
+    row.className = isOffsetRow ? "brick-row offset-row" : "brick-row";
+
+    if (isOffsetRow) {
+      row.appendChild(createHalfBrick());
     }
 
-    brick.innerHTML = `
-      <span class="year">${year}</span>
-      <span class="age">Age ${age}</span>
-    `;
+    for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
+      const age = year - birthYear;
+      row.appendChild(createBrick(year, age));
+      year++;
+    }
 
-    brick.addEventListener("click", () => openYear(year, age));
-    wall.appendChild(brick);
+    if (isOffsetRow) {
+      row.appendChild(createHalfBrick());
+    }
+
+    wall.appendChild(row);
+    rowIndex++;
   }
+}
+
+function createHalfBrick() {
+  const halfBrick = document.createElement("div");
+  halfBrick.className = "half-brick";
+  return halfBrick;
+}
+
+function createBrick(year, age) {
+  const brick = document.createElement("button");
+  brick.className = "brick";
+  brick.setAttribute("aria-label", `${year}, age ${age}`);
+
+  if (year === currentYear) brick.classList.add("current");
+  if (year > currentYear) brick.classList.add("future");
+  if (memories[year] && memories[year].length > 0) {
+    brick.classList.add("has-memories");
+  }
+
+  brick.innerHTML = `
+    <span class="year">${year}</span>
+    <span class="age">Age ${age}</span>
+  `;
+
+  brick.addEventListener("click", () => openYear(year, age));
+
+  return brick;
 }
 
 function openYear(year, age) {
