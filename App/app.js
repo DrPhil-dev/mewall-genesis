@@ -122,6 +122,7 @@ const CustomImage = Image.extend({
           isMoving = true;
           wrapper.classList.add("is-moving");
           document.body.style.cursor = "grabbing";
+          console.log("[photo-move] threshold crossed, drag started");
         }
         event.preventDefault();
       }
@@ -133,8 +134,11 @@ const CustomImage = Image.extend({
         wrapper.classList.remove("is-moving");
         document.body.style.cursor = "";
 
+        console.log("[photo-move] pointerup fired, isMoving:", isMoving, "getPos is function:", typeof getPos === "function");
+
         if (!isMoving || typeof getPos !== "function") {
           isMoving = false;
+          console.log("[photo-move] bailing: no drag was in progress");
           return;
         }
         isMoving = false;
@@ -142,16 +146,28 @@ const CustomImage = Image.extend({
         try {
           const view = editor.view;
           const dropResult = view.posAtCoords({ left: event.clientX, top: event.clientY });
-          if (!dropResult) return;
+          console.log("[photo-move] dropResult from posAtCoords:", dropResult);
+
+          if (!dropResult) {
+            console.log("[photo-move] bailing: posAtCoords returned null (dropped outside the editable area)");
+            return;
+          }
 
           const from = getPos();
           const to = from + currentNode.nodeSize;
+          console.log("[photo-move] image currently spans", from, "to", to, "— drop target pos:", dropResult.pos);
 
           // Dropped back onto (or just past) itself — nothing to do.
-          if (dropResult.pos >= from && dropResult.pos <= to) return;
+          if (dropResult.pos >= from && dropResult.pos <= to) {
+            console.log("[photo-move] bailing: dropped back onto itself");
+            return;
+          }
 
           const imageNode = view.state.doc.nodeAt(from);
-          if (!imageNode) return;
+          if (!imageNode) {
+            console.log("[photo-move] bailing: no image node found at 'from' position — position may be stale");
+            return;
+          }
 
           const tr = view.state.tr;
           tr.delete(from, to);
@@ -159,11 +175,12 @@ const CustomImage = Image.extend({
           tr.insert(mappedTarget, imageNode);
           view.dispatch(tr);
           view.focus();
+          console.log("[photo-move] move committed — inserted at mapped position", mappedTarget);
         } catch (error) {
           // If anything about the move fails unexpectedly, leave the photo
           // where it was rather than letting the error escape and risk
           // affecting anything else on the page.
-          console.error("Could not move photo:", error);
+          console.error("[photo-move] threw an error:", error);
         }
       }
 
@@ -178,10 +195,12 @@ const CustomImage = Image.extend({
         wrapper.classList.remove("is-moving");
         document.body.style.cursor = "";
         isMoving = false;
+        console.log("[photo-move] pointercancel fired — gesture was interrupted, reset without moving");
       }
 
       wrapper.addEventListener("pointerdown", event => {
         if (event.target === handle) return;
+        console.log("[photo-move] pointerdown on photo at", event.clientX, event.clientY);
 
         moveStartX = event.clientX;
         moveStartY = event.clientY;
@@ -220,7 +239,7 @@ const transcribeUrl = "https://mewall-transcribe.phil-003.workers.dev";
 const DEFAULT_PHOTO_WIDTH = "35%";
 
 let settings = loadSettings();
-let memories = loadMemories();
+let memories = {};
 let selectedYear = null;
 let editingMemoryIndex = null;
 let mediaRecorder = null;
@@ -320,8 +339,10 @@ function setupEditor() {
   });
 }
 
-function initialise() {
+async function initialise() {
   setupEditor();
+
+  memories = await loadMemories();
 
   if (!settings.birthYear) {
     setupView.classList.remove("hidden");
@@ -511,7 +532,7 @@ function showEditor() {
   editor.commands.focus();
 }
 
-function keepMemory() {
+async function keepMemory() {
   const html = editor.getHTML();
   const plainText = editor.getText().trim();
   const hasImage = html.includes("<img");
@@ -543,7 +564,7 @@ function keepMemory() {
     });
   }
 
-  if (!saveMemories()) {
+  if (!(await saveMemories())) {
     // Undo the in-memory change so it matches what's actually stored,
     // rather than looking saved when it isn't.
     if (isNewEntry) {
@@ -554,8 +575,8 @@ function keepMemory() {
     }
 
     alert(
-      "This memory couldn't be saved — photo storage on this device is full. " +
-      "Try removing or shrinking the photo, exporting a backup and clearing older memories, " +
+      "This memory couldn't be saved — this device may be out of storage space. " +
+      "Try removing or shrinking the photo, freeing up space on the device, " +
       "then keep the memory again."
     );
     return;
@@ -580,7 +601,7 @@ function editMemory(index) {
   editor.commands.focus();
 }
 
-function deleteMemory(index) {
+async function deleteMemory(index) {
   const confirmed = confirm("Remove this memory from this year?");
   if (!confirmed) return;
 
@@ -590,7 +611,7 @@ function deleteMemory(index) {
     delete memories[selectedYear];
   }
 
-  if (!saveMemories()) {
+  if (!(await saveMemories())) {
     alert("Something went wrong saving that change. Please try again.");
   }
 
@@ -825,7 +846,7 @@ function importLife(event) {
 
   const reader = new FileReader();
 
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const data = JSON.parse(reader.result);
 
@@ -839,7 +860,7 @@ function importLife(event) {
 
       saveSettings();
 
-      if (!saveMemories()) {
+      if (!(await saveMemories())) {
         alert("That backup was read, but it's too large to store on this device (storage is full). Try importing on a device with more free space.");
         return;
       }
@@ -971,7 +992,7 @@ function createLifeBook() {
   bookWindow.document.close();
 }
 
-function resetMeWall() {
+async function resetMeWall() {
   const confirmed = confirm(
     "This will clear this browser's MyLifeWall data. Export a backup first if you want to keep it."
   );
@@ -979,7 +1000,12 @@ function resetMeWall() {
   if (!confirmed) return;
 
   localStorage.removeItem(settingsKey);
-  localStorage.removeItem(memoryKey);
+  localStorage.removeItem(memoryKey); // clears any leftover pre-migration data
+  try {
+    await idbRemoveMemories();
+  } catch (error) {
+    console.error("Could not clear stored memories:", error);
+  }
 
   settings = {};
   memories = {};
@@ -1007,27 +1033,98 @@ function loadSettings() {
   }
 }
 
-function saveMemories() {
+// Settings (name, birth date) are tiny and stay in localStorage — no
+// reason to complicate something that small. Photos are the problem, so
+// only memories (which contain the photos) move to IndexedDB, which has a
+// far higher ceiling, generally tied to free disk space, rather than
+// localStorage's fixed ~5–10MB-per-site cap.
+const idbName = "mewall_db";
+const idbStoreName = "memories";
+
+function openMemoriesDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(idbName, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(idbStoreName)) {
+        db.createObjectStore(idbStoreName);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function idbGetMemories() {
+  const db = await openMemoriesDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(idbStoreName, "readonly");
+    const request = tx.objectStore(idbStoreName).get(memoryKey);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function idbSetMemories(value) {
+  const db = await openMemoriesDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(idbStoreName, "readwrite");
+    tx.objectStore(idbStoreName).put(value, memoryKey);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbRemoveMemories() {
+  const db = await openMemoriesDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(idbStoreName, "readwrite");
+    tx.objectStore(idbStoreName).delete(memoryKey);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function saveMemories() {
   try {
-    localStorage.setItem(memoryKey, JSON.stringify(memories));
+    await idbSetMemories(memories);
     return true;
   } catch (error) {
-    // Most commonly a QuotaExceededError — this device's local storage
-    // (shared across the whole browser, not just this app) is full,
-    // usually from accumulated photos. Report it instead of losing the
-    // save silently.
+    // IndexedDB has a far higher ceiling than localStorage did, but it
+    // isn't infinite — this device could still genuinely be out of disk
+    // space. Report it instead of losing the save silently.
     console.error("Could not save memories:", error);
     return false;
   }
 }
 
-function loadMemories() {
-  const saved = localStorage.getItem(memoryKey);
-  if (!saved) return {};
-
+async function loadMemories() {
   try {
-    return JSON.parse(saved);
-  } catch {
+    const saved = await idbGetMemories();
+    if (saved) return saved;
+
+    // One-time migration: anyone who used the app before this change has
+    // their memories sitting in the old localStorage key. Move it across
+    // automatically so nothing is lost, then clear the old copy to free up
+    // the tight localStorage quota it was eating into.
+    const legacy = localStorage.getItem(memoryKey);
+    if (legacy) {
+      try {
+        const parsed = JSON.parse(legacy);
+        await idbSetMemories(parsed);
+        localStorage.removeItem(memoryKey);
+        console.log("Migrated existing memories from localStorage to IndexedDB.");
+        return parsed;
+      } catch (migrationError) {
+        console.error("Could not migrate legacy memories:", migrationError);
+      }
+    }
+
+    return {};
+  } catch (error) {
+    console.error("Could not load memories from storage:", error);
     return {};
   }
 }
