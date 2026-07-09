@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Life Wall</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>My Life Wall</h1>
+      <p id="ownerName" class="owner-name"></p>
+      <p>Every life has a story. This is yours.</p>
+    </header>
+
+    <section id="setupView" class="setup-view hidden">
+      <h2>Begin your Life Wall</h2>
+
+      <p>What is your name?</p>
+      <input id="nameInput" type="text" placeholder="Your name" />
+
+      <p>What is your date of birth?</p>
+      <input id="birthDateInput" type="date" />
+
+      <button id="startButton" class="keep-button">Begin</button>
+    </section>
+
+    <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
+
+    <section id="yearView" class="year-view hidden">
+      <button id="backButton" class="back-button">← Home Wall</button>
+
+      <div class="year-heading">
+        <h2 id="yearTitle"></h2>
+        <p id="yearAge"></p>
+      </div>
+
+      <div class="year-invitation">
+        <p>Every year has a story.</p>
+        <p>What do you remember about this year?</p>
+      </div>
+
+      <section class="memories-section">
+        <h3>Memories</h3>
+        <div id="emptyYear" class="empty-year hidden">
+          <p>Nothing has been remembered from this year yet.</p>
+          <p>Take your time.</p>
+        </div>
+        <div id="memoryList" class="memory-list"></div>
+      </section>
+
+      <button id="showEditorButton" class="keep-button">Record another memory</button>
+
+      <div id="memoryEditor" class="memory-box hidden">
+        <label>Tell this year about something you remember...</label>
+
+        <div class="voice-actions">
+          <button id="recordAudioButton" class="voice-button">🎙️ Record memory</button>
+          <button id="stopRecordingButton" class="voice-button hidden">Stop recording</button>
+          <button id="insertPhotoButton" class="voice-button">📷 Add photo</button>
+          <input id="photoInput" type="file" accept="image/*" hidden />
+          <span id="recordingStatus" class="listening-status hidden">Recording...</span>
+        </div>
+
+        <div class="photo-size-tools">
+          <button id="smallPhotoButton" class="voice-button">Small photo</button>
+          <button id="mediumPhotoButton" class="voice-button">Medium photo</button>
+          <button id="largePhotoButton" class="voice-button">Large photo</button>
+          <button id="removePhotoButton" class="voice-button">Remove photo</button>
+        </div>
+
+        <div id="tipTapEditor" class="rich-memory-input"></div>
+
+        <p class="editor-hint">Type, speak, paste, drag, or add a photo directly into this memory.</p>
+
+        <div class="editor-actions">
+          <button id="keepMemoryButton" class="keep-button">Keep memory</button>
+          <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <footer id="lifeTools" class="life-tools hidden">
+      <button id="exportButton">Export backup</button>
+      <label for="importInput" class="import-label">Import backup</label>
+      <input id="importInput" type="file" accept="application/json" hidden />
+      <button id="lifeBookButton">Create Life Book</button>
+    </footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
