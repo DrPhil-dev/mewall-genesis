@@ -33,7 +33,9 @@ let audioChunks = [];
 let editor = null;
 
 const setupView = document.getElementById("setupView");
-const birthYearInput = document.getElementById("birthYearInput");
+const nameInput = document.getElementById("nameInput");
+const birthDateInput = document.getElementById("birthDateInput");
+const ownerName = document.getElementById("ownerName");
 const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
@@ -66,11 +68,41 @@ const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 const lifeBookButton = document.getElementById("lifeBookButton");
 
+const DEFAULT_PHOTO_WIDTH = "35%";
+
 function setupEditor() {
   editor = new Editor({
     element: document.querySelector("#tipTapEditor"),
     extensions: [StarterKit, CustomImage.configure({ allowBase64: true })],
     content: "",
+    editorProps: {
+      handleDrop(view, event) {
+        const files = Array.from(event.dataTransfer?.files || []);
+        const image = files.find(file => file.type.startsWith("image/"));
+
+        if (image) {
+          event.preventDefault();
+          insertPhoto(image);
+          return true;
+        }
+
+        return false;
+      },
+
+      handlePaste(view, event) {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItem = items.find(item => item.type.startsWith("image/"));
+
+        if (imageItem) {
+          const file = imageItem.getAsFile();
+          event.preventDefault();
+          insertPhoto(file);
+          return true;
+        }
+
+        return false;
+      }
+    }
   });
 }
 
@@ -90,18 +122,35 @@ function showWall() {
   yearView.classList.add("hidden");
   wall.classList.remove("hidden");
   lifeTools.classList.remove("hidden");
+  ownerName.textContent = settings.name ? settings.name : "";
   createWall();
 }
 
 function startMeWall() {
-  const birthYear = Number(birthYearInput.value);
+  const name = nameInput.value.trim();
+  const birthDate = birthDateInput.value;
 
-  if (!birthYear || birthYear < 1850 || birthYear > currentYear) {
-    alert("Please enter a valid birth year.");
+  if (!name) {
+    alert("Please enter your name.");
     return;
   }
 
+  if (!birthDate) {
+    alert("Please enter your date of birth.");
+    return;
+  }
+
+  const birthYear = new Date(birthDate).getFullYear();
+
+  if (!birthYear || birthYear < 1850 || birthYear > currentYear) {
+    alert("Please enter a valid date of birth.");
+    return;
+  }
+
+  settings.name = name;
+  settings.birthDate = birthDate;
   settings.birthYear = birthYear;
+
   saveSettings();
   showWall();
 }
@@ -271,7 +320,7 @@ function insertPhoto(file) {
     editor.chain().focus().setImage({
       src: reader.result,
       alt: "Memory photograph",
-      width: "100%"
+      width: DEFAULT_PHOTO_WIDTH
     }).run();
   };
 

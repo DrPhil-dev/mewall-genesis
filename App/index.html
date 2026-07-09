@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MyLifeWall</title>
+  <title>My Life Wall</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app">
     <header class="header">
-      <h1>MyLifeWall</h1>
+      <h1>My Life Wall</h1>
+      <p id="ownerName" class="owner-name"></p>
       <p>Every life has a story. This is yours.</p>
     </header>
 
     <section id="setupView" class="setup-view hidden">
-      <h2>Begin your Me-Wall</h2>
-      <p>What year were you born?</p>
-      <input id="birthYearInput" type="number" placeholder="1959" />
+      <h2>Begin your Life Wall</h2>
+
+      <p>What is your name?</p>
+      <input id="nameInput" type="text" placeholder="Your name" />
+
+      <p>What is your date of birth?</p>
+      <input id="birthDateInput" type="date" />
+
       <button id="startButton" class="keep-button">Begin</button>
     </section>
 
@@ -66,7 +72,7 @@
 
         <div id="tipTapEditor" class="rich-memory-input"></div>
 
-        <p class="editor-hint">Type, speak, or add a photo directly into this memory.</p>
+        <p class="editor-hint">Type, speak, paste, or add a photo directly into this memory.</p>
 
         <div class="editor-actions">
           <button id="keepMemoryButton" class="keep-button">Keep memory</button>
@@ -80,9 +86,6 @@
       <label for="importInput" class="import-label">Import backup</label>
       <input id="importInput" type="file" accept="application/json" hidden />
       <button id="lifeBookButton">Create Life Book</button>
-      <!--
-<button id="resetButton">Start again</button>
--->
     </footer>
   </main>
 
