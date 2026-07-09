@@ -52,7 +52,7 @@ body {
 }
 
 .wall {
-  max-width: 1180px;
+  max-width: 1220px;
   margin: 0 auto;
   padding: 46px 48px;
   background:
@@ -79,7 +79,7 @@ body {
 }
 
 .offset-row {
-  transform: translateX(56px);
+  transform: none;
 }
 
 .brick {
