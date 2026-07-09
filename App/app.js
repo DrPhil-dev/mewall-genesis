@@ -2,7 +2,12 @@ import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import Image from "https://esm.sh/@tiptap/extension-image";
 
+const MIN_PHOTO_WIDTH_PERCENT = 15;
+const MAX_PHOTO_WIDTH_PERCENT = 100;
+
 const CustomImage = Image.extend({
+  draggable: true,
+
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -15,6 +20,92 @@ const CustomImage = Image.extend({
           style: `width: ${attributes.width}; height: auto;`
         })
       }
+    };
+  },
+
+  // A custom node view so a photo can be dragged to a new spot in the
+  // memory (via the node's draggable: true above) and resized by dragging
+  // a handle on its corner, instead of only the three preset size buttons.
+  addNodeView() {
+    return ({ node, editor, getPos }) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "memory-image-wrapper";
+      wrapper.style.width = node.attrs.width || "35%";
+      wrapper.draggable = true;
+
+      const img = document.createElement("img");
+      img.src = node.attrs.src;
+      img.alt = node.attrs.alt || "";
+      img.draggable = false;
+      wrapper.appendChild(img);
+
+      const handle = document.createElement("span");
+      handle.className = "memory-image-resize-handle";
+      handle.draggable = false;
+      handle.setAttribute("aria-hidden", "true");
+      wrapper.appendChild(handle);
+
+      let dragStartX = 0;
+      let startWidthPx = 0;
+      let containerWidthPx = 0;
+
+      function commitWidth(percent) {
+        if (typeof getPos !== "function") return;
+        const pos = getPos();
+        editor.chain().setNodeSelection(pos).updateAttributes("image", {
+          width: `${percent}%`
+        }).run();
+      }
+
+      function onPointerMove(event) {
+        const deltaX = event.clientX - dragStartX;
+        let newWidthPx = startWidthPx + deltaX;
+        const minPx = (MIN_PHOTO_WIDTH_PERCENT / 100) * containerWidthPx;
+        newWidthPx = Math.max(minPx, Math.min(containerWidthPx, newWidthPx));
+        const percent = Math.round((newWidthPx / containerWidthPx) * 100);
+        wrapper.style.width = `${percent}%`;
+      }
+
+      function onPointerUp() {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        const percent = Math.round(
+          (wrapper.getBoundingClientRect().width / containerWidthPx) * 100
+        );
+        commitWidth(Math.min(MAX_PHOTO_WIDTH_PERCENT, Math.max(MIN_PHOTO_WIDTH_PERCENT, percent)));
+      }
+
+      handle.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const parentEl = wrapper.parentElement;
+        containerWidthPx = parentEl
+          ? parentEl.getBoundingClientRect().width
+          : wrapper.getBoundingClientRect().width;
+        dragStartX = event.clientX;
+        startWidthPx = wrapper.getBoundingClientRect().width;
+
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+      });
+
+      return {
+        dom: wrapper,
+        update(updatedNode) {
+          if (updatedNode.type.name !== "image") return false;
+          img.src = updatedNode.attrs.src;
+          img.alt = updatedNode.attrs.alt || "";
+          wrapper.style.width = updatedNode.attrs.width || "35%";
+          return true;
+        },
+        stopEvent(event) {
+          return event.target === handle;
+        },
+        ignoreMutation() {
+          return true;
+        }
+      };
     };
   }
 });

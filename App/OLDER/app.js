@@ -154,81 +154,21 @@ function startMeWall() {
   showWall();
 }
 
-const BRICK_GAP = 10;
-const MIN_BRICK_WIDTH = 64;
-const MAX_BRICK_WIDTH = 130;
-
-// Picks a target bricks-per-row for the available width. This is a starting
-// point, not a hard rule — getWallLayout() below shrinks or grows the actual
-// brick width to fill that row exactly, so nothing ever overflows.
-function pickBricksPerRow(availableWidth) {
-  if (availableWidth < 320) return 3;
-  if (availableWidth < 480) return 4;
-  if (availableWidth < 700) return 6;
-  if (availableWidth < 940) return 8;
-  return 10;
-}
-
-// Works out how many bricks fit the wall's current width, and how wide each
-// one needs to be to fill that row exactly — so mobile gets fewer, properly
-// sized bricks instead of the desktop brick size squeezed in regardless.
-function getWallLayout() {
-  const styles = getComputedStyle(wall);
-  const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-  const paddingRight = parseFloat(styles.paddingRight) || 0;
-
-  // clientWidth already excludes the border, so subtracting padding gives
-  // the exact content width the brick rows render into.
-  const availableWidth = wall.clientWidth - paddingLeft - paddingRight;
-
-  let bricksPerRow = pickBricksPerRow(availableWidth);
-
-  // Size bricks to exactly fill the row: n bricks with (n-1) gaps take
-  // n*brickWidth + (n-1)*gap of space, so brickWidth = (available - gaps)/n.
-  let brickWidth = Math.floor((availableWidth - (bricksPerRow - 1) * BRICK_GAP) / bricksPerRow);
-
-  // If that pushes bricks below a readable minimum, drop the count instead
-  // of shrinking further. If there's more room than the design calls for,
-  // cap the width rather than blowing bricks up to fill a huge screen.
-  while (brickWidth < MIN_BRICK_WIDTH && bricksPerRow > 3) {
-    bricksPerRow -= 1;
-    brickWidth = Math.floor((availableWidth - (bricksPerRow - 1) * BRICK_GAP) / bricksPerRow);
-  }
-  brickWidth = Math.min(brickWidth, MAX_BRICK_WIDTH);
-
-  wall.style.setProperty("--brick-width", `${brickWidth}px`);
-
-  // The staggered row always has one fewer brick, shifted in by exactly
-  // half a brick-and-gap on each side, so both row types come out the
-  // same total width and stay perfectly centred and interlocked.
-  const staggerBricksPerRow = bricksPerRow - 1;
-  const unit = brickWidth + BRICK_GAP;
-  const staggerOffset = unit / 2;
-
-  return { bricksPerRow, staggerBricksPerRow, staggerOffset };
-}
-
 function createWall() {
   wall.innerHTML = "";
 
   const birthYear = settings.birthYear;
   const futureHorizon = birthYear + 99;
-  const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
   let year = birthYear;
   let rowIndex = 0;
 
   while (year <= futureHorizon) {
     const isOffsetRow = rowIndex % 2 === 1;
-    const rowSize = isOffsetRow ? staggerBricksPerRow : bricksPerRow;
+    const rowSize = isOffsetRow ? 9 : 10;
 
     const row = document.createElement("div");
     row.className = isOffsetRow ? "brick-row offset-row" : "brick-row";
-
-    if (isOffsetRow) {
-      row.style.paddingLeft = `${staggerOffset}px`;
-      row.style.paddingRight = `${staggerOffset}px`;
-    }
 
     for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
       const age = year - birthYear;
@@ -240,15 +180,6 @@ function createWall() {
     rowIndex++;
   }
 }
-
-// Rebuild the wall if the window is resized while it's visible, so the
-// brick count always matches the space actually available.
-let wallResizeTimeout = null;
-window.addEventListener("resize", () => {
-  if (wall.classList.contains("hidden")) return;
-  clearTimeout(wallResizeTimeout);
-  wallResizeTimeout = setTimeout(createWall, 150);
-});
 
 function createBrick(year, age) {
   const brick = document.createElement("button");

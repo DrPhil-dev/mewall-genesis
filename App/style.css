@@ -127,7 +127,7 @@ body {
   background-size: 220px 220px, 90px 90px;
   background-blend-mode: multiply;
   mix-blend-mode: overlay;
-  opacity: 0.82;
+  opacity: 0.32;
 }
 
 .brick:nth-child(4n) {
@@ -495,6 +495,58 @@ body {
   margin: 22px auto;
   border-radius: 16px;
   border: 1px solid #d8cbb8;
+}
+
+/* The photo wrapper rendered by the editor's custom image node view — lets
+   a photo be dragged to a new spot in the memory (native HTML5 drag, since
+   the node is marked draggable) and resized via the corner handle below. */
+.memory-image-wrapper {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin: 22px auto;
+  cursor: grab;
+}
+
+.memory-image-wrapper:active {
+  cursor: grabbing;
+}
+
+.memory-image-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+  pointer-events: none;
+}
+
+.memory-image-wrapper.ProseMirror-selectednode {
+  outline: 2px solid var(--stone-dark, #b0a68f);
+  outline-offset: 5px;
+  border-radius: 18px;
+}
+
+.memory-image-resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--stone-dark, #b0a68f);
+  border: 2px solid var(--panel, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  touch-action: none;
+}
+
+.memory-image-wrapper:hover .memory-image-resize-handle,
+.memory-image-wrapper.ProseMirror-selectednode .memory-image-resize-handle {
+  opacity: 1;
 }
 
 .editor-hint {
