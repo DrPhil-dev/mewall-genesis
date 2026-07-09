@@ -127,7 +127,7 @@ body {
   background-size: 220px 220px, 90px 90px;
   background-blend-mode: multiply;
   mix-blend-mode: overlay;
-  opacity: 0.42;
+  opacity: 0.82;
 }
 
 .brick:nth-child(4n) {
