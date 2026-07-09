@@ -6,7 +6,12 @@ const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
 
 const CustomImage = Image.extend({
-  draggable: true,
+  // Native HTML5 drag-and-drop inside a contenteditable region is
+  // notoriously inconsistent across browsers (this is what was causing the
+  // "picks up, snaps back" behaviour). Instead we track the pointer
+  // ourselves, the same technique used for the resize handle below, and
+  // move the node through a real transaction once the drag completes.
+  draggable: false,
 
   addAttributes() {
     return {
@@ -23,15 +28,17 @@ const CustomImage = Image.extend({
     };
   },
 
-  // A custom node view so a photo can be dragged to a new spot in the
-  // memory (via the node's draggable: true above) and resized by dragging
-  // a handle on its corner, instead of only the three preset size buttons.
+  // A custom node view: a corner handle resizes the photo by dragging, and
+  // grabbing the photo itself (anywhere but the handle) moves it to a new
+  // spot in the memory.
   addNodeView() {
     return ({ node, editor, getPos }) => {
+      let currentNode = node;
+
       const wrapper = document.createElement("div");
       wrapper.className = "memory-image-wrapper";
       wrapper.style.width = node.attrs.width || "35%";
-      wrapper.draggable = true;
+      wrapper.draggable = false;
 
       const img = document.createElement("img");
       img.src = node.attrs.src;
@@ -45,6 +52,8 @@ const CustomImage = Image.extend({
       handle.setAttribute("aria-hidden", "true");
       wrapper.appendChild(handle);
 
+      // --- Resize (drag the corner handle) ---
+
       let dragStartX = 0;
       let startWidthPx = 0;
       let containerWidthPx = 0;
@@ -57,7 +66,7 @@ const CustomImage = Image.extend({
         }).run();
       }
 
-      function onPointerMove(event) {
+      function onResizeMove(event) {
         const deltaX = event.clientX - dragStartX;
         let newWidthPx = startWidthPx + deltaX;
         const minPx = (MIN_PHOTO_WIDTH_PERCENT / 100) * containerWidthPx;
@@ -66,9 +75,9 @@ const CustomImage = Image.extend({
         wrapper.style.width = `${percent}%`;
       }
 
-      function onPointerUp() {
-        document.removeEventListener("pointermove", onPointerMove);
-        document.removeEventListener("pointerup", onPointerUp);
+      function onResizeUp() {
+        document.removeEventListener("pointermove", onResizeMove);
+        document.removeEventListener("pointerup", onResizeUp);
         const percent = Math.round(
           (wrapper.getBoundingClientRect().width / containerWidthPx) * 100
         );
@@ -86,14 +95,85 @@ const CustomImage = Image.extend({
         dragStartX = event.clientX;
         startWidthPx = wrapper.getBoundingClientRect().width;
 
-        document.addEventListener("pointermove", onPointerMove);
-        document.addEventListener("pointerup", onPointerUp);
+        document.addEventListener("pointermove", onResizeMove);
+        document.addEventListener("pointerup", onResizeUp);
+      });
+
+      // --- Move (drag the photo itself to a new spot) ---
+
+      const MOVE_THRESHOLD_PX = 6;
+      let moveStartX = 0;
+      let moveStartY = 0;
+      let isMoving = false;
+
+      function onMoveMove(event) {
+        if (!isMoving) {
+          const dx = event.clientX - moveStartX;
+          const dy = event.clientY - moveStartY;
+          if (Math.hypot(dx, dy) < MOVE_THRESHOLD_PX) return;
+          isMoving = true;
+          wrapper.classList.add("is-moving");
+          document.body.style.cursor = "grabbing";
+        }
+        event.preventDefault();
+      }
+
+      function onMoveUp(event) {
+        document.removeEventListener("pointermove", onMoveMove);
+        document.removeEventListener("pointerup", onMoveUp);
+        wrapper.classList.remove("is-moving");
+        document.body.style.cursor = "";
+
+        if (!isMoving || typeof getPos !== "function") {
+          isMoving = false;
+          return;
+        }
+        isMoving = false;
+
+        try {
+          const view = editor.view;
+          const dropResult = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          if (!dropResult) return;
+
+          const from = getPos();
+          const to = from + currentNode.nodeSize;
+
+          // Dropped back onto (or just past) itself — nothing to do.
+          if (dropResult.pos >= from && dropResult.pos <= to) return;
+
+          const imageNode = view.state.doc.nodeAt(from);
+          if (!imageNode) return;
+
+          const tr = view.state.tr;
+          tr.delete(from, to);
+          const mappedTarget = tr.mapping.map(dropResult.pos);
+          tr.insert(mappedTarget, imageNode);
+          view.dispatch(tr);
+          view.focus();
+        } catch (error) {
+          // If anything about the move fails unexpectedly, leave the photo
+          // where it was rather than letting the error escape and risk
+          // affecting anything else on the page.
+          console.error("Could not move photo:", error);
+        }
+      }
+
+      wrapper.addEventListener("pointerdown", event => {
+        if (event.target === handle) return;
+
+        moveStartX = event.clientX;
+        moveStartY = event.clientY;
+        isMoving = false;
+
+        document.addEventListener("pointermove", onMoveMove);
+        document.addEventListener("pointerup", onMoveUp);
       });
 
       return {
         dom: wrapper,
         update(updatedNode) {
           if (updatedNode.type.name !== "image") return false;
+          currentNode = updatedNode;
           img.src = updatedNode.attrs.src;
           img.alt = updatedNode.attrs.alt || "";
           wrapper.style.width = updatedNode.attrs.width || "35%";
@@ -392,7 +472,12 @@ function keepMemory() {
   const plainText = editor.getText().trim();
   const hasImage = html.includes("<img");
 
-  if ((!plainText && !hasImage) || selectedYear === null) return;
+  if (!plainText && !hasImage) {
+    alert("Write something or add a photo before keeping this memory.");
+    return;
+  }
+
+  if (selectedYear === null) return;
 
   if (!memories[selectedYear]) {
     memories[selectedYear] = [];
