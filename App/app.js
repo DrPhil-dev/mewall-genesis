@@ -39,11 +39,17 @@ const CustomImage = Image.extend({
       wrapper.className = "memory-image-wrapper";
       wrapper.style.width = node.attrs.width || "35%";
       wrapper.draggable = false;
+      // Belt-and-braces: browsers can still natively drag an <img> inside
+      // a contenteditable region even with draggable=false in some cases.
+      // Explicitly cancel any native dragstart so only our own pointer-
+      // based move logic below can ever move this photo.
+      wrapper.addEventListener("dragstart", event => event.preventDefault());
 
       const img = document.createElement("img");
       img.src = node.attrs.src;
       img.alt = node.attrs.alt || "";
       img.draggable = false;
+      img.addEventListener("dragstart", event => event.preventDefault());
       wrapper.appendChild(img);
 
       const handle = document.createElement("span");
@@ -78,6 +84,7 @@ const CustomImage = Image.extend({
       function onResizeUp() {
         document.removeEventListener("pointermove", onResizeMove);
         document.removeEventListener("pointerup", onResizeUp);
+        document.removeEventListener("pointercancel", onResizeUp);
         const percent = Math.round(
           (wrapper.getBoundingClientRect().width / containerWidthPx) * 100
         );
@@ -97,6 +104,7 @@ const CustomImage = Image.extend({
 
         document.addEventListener("pointermove", onResizeMove);
         document.addEventListener("pointerup", onResizeUp);
+        document.addEventListener("pointercancel", onResizeUp);
       });
 
       // --- Move (drag the photo itself to a new spot) ---
@@ -121,6 +129,7 @@ const CustomImage = Image.extend({
       function onMoveUp(event) {
         document.removeEventListener("pointermove", onMoveMove);
         document.removeEventListener("pointerup", onMoveUp);
+        document.removeEventListener("pointercancel", onMoveCancel);
         wrapper.classList.remove("is-moving");
         document.body.style.cursor = "";
 
@@ -158,6 +167,19 @@ const CustomImage = Image.extend({
         }
       }
 
+      // If the gesture gets interrupted (e.g. a stray native drag event
+      // sneaking through despite the dragstart guards above), just reset
+      // cleanly rather than attempting a move from a possibly-stale state —
+      // this is what stops the cursor getting stuck on "grabbing".
+      function onMoveCancel() {
+        document.removeEventListener("pointermove", onMoveMove);
+        document.removeEventListener("pointerup", onMoveUp);
+        document.removeEventListener("pointercancel", onMoveCancel);
+        wrapper.classList.remove("is-moving");
+        document.body.style.cursor = "";
+        isMoving = false;
+      }
+
       wrapper.addEventListener("pointerdown", event => {
         if (event.target === handle) return;
 
@@ -167,6 +189,7 @@ const CustomImage = Image.extend({
 
         document.addEventListener("pointermove", onMoveMove);
         document.addEventListener("pointerup", onMoveUp);
+        document.addEventListener("pointercancel", onMoveCancel);
       });
 
       return {
@@ -243,7 +266,15 @@ const lifeBookButton = document.getElementById("lifeBookButton");
 function setupEditor() {
   editor = new Editor({
     element: document.querySelector("#tipTapEditor"),
-    extensions: [StarterKit, CustomImage.configure({ allowBase64: true })],
+    extensions: [
+      // Dropcursor only reacts to native HTML5 drag events. Since photo
+      // moving is now handled entirely by our own pointer tracking (see
+      // CustomImage's addNodeView above), leaving it on just means it can
+      // still light up if a stray native drag ever sneaks through —
+      // exactly the conflict that was causing the stuck "grabbing" cursor.
+      StarterKit.configure({ dropcursor: false }),
+      CustomImage.configure({ allowBase64: true })
+    ],
     content: "",
     editorProps: {
       handleDrop(view, event) {
