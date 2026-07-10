@@ -11,8 +11,36 @@
     <header class="header">
       <h1>My Life Wall</h1>
       <p id="ownerName" class="owner-name"></p>
-      <p>Every life has a story. This is yours.</p>
+      <p>Every life has a story. This is mine.</p>
+
+      <nav id="menuBar" class="menu-bar hidden" aria-label="Main menu">
+        <button type="button" class="menu-item" data-page="home">Home Wall</button>
+        <button type="button" class="menu-item" data-page="pageWelcome">Welcome</button>
+        <button type="button" class="menu-item" data-page="pageHowTo">How to use</button>
+        <button type="button" class="menu-item" data-page="pageFeatures">Features</button>
+      </nav>
     </header>
+
+    <section id="pageWelcome" class="info-page hidden">
+      <h2>Welcome to My Life Wall</h2>
+      <p>My Life Wall is a place to gather the story of a life, one year at a time. Each brick on the wall is a year. Some years hold many memories, some are still waiting for theirs.</p>
+      <p>There is no right order and no deadline. Start with the years you remember most vividly and let the rest follow.</p>
+      <p><em>(Placeholder content — final wording to come.)</em></p>
+    </section>
+
+    <section id="pageHowTo" class="info-page hidden">
+      <h2>How to use this app</h2>
+      <p>Click any year on the wall to open it, then write, speak, or add photos to record a memory from that year. Use "Keep memory" to save it. You can come back and edit or add more at any time.</p>
+      <p>Photos can be resized by dragging their corner handle, moved by dragging them, and given a caption by clicking just beneath them.</p>
+      <p>Use "Export backup" regularly to keep a copy of everything safe, and "Create Life Book" to turn the whole wall into a printable book.</p>
+      <p><em>(Placeholder content — final wording to come.)</em></p>
+    </section>
+
+    <section id="pageFeatures" class="info-page hidden">
+      <h2>Features in this app</h2>
+      <p>The Home Wall — a brick for every year of a life, coloured by whether it holds memories yet. The memory editor — write, dictate, or photograph your way through a year. The Life Book — the whole wall gathered into a printable book. Backups — export and import everything as a single file.</p>
+      <p><em>(Placeholder content — final wording to come.)</em></p>
+    </section>
 
     <section id="setupView" class="setup-view hidden">
       <h2>Begin your Life Wall</h2>
@@ -43,10 +71,7 @@
 
       <section class="memories-section">
         <h3>Memories</h3>
-        <div id="emptyYear" class="empty-year hidden">
-          <p>Nothing has been remembered from this year yet.</p>
-          <p>Take your time.</p>
-        </div>
+        <div id="emptyYear" class="empty-year hidden"></div>
         <div id="memoryList" class="memory-list"></div>
       </section>
 
@@ -56,7 +81,7 @@
         <label>Tell this year about something you remember...</label>
 
         <div class="voice-actions">
-          <button id="recordAudioButton" class="voice-button">🎙️ Record memory</button>
+          <button id="recordAudioButton" class="voice-button record-button"><span class="mic-icon">🎙️</span> Record memory</button>
           <button id="stopRecordingButton" class="voice-button hidden">Stop recording</button>
           <button id="insertPhotoButton" class="voice-button">📷 Add photo</button>
           <input id="photoInput" type="file" accept="image/*" hidden />
@@ -68,6 +93,29 @@
           <button id="mediumPhotoButton" class="voice-button">Medium photo</button>
           <button id="largePhotoButton" class="voice-button">Large photo</button>
           <button id="removePhotoButton" class="voice-button">Remove photo</button>
+        </div>
+
+        <div id="formatToolbar" class="format-toolbar">
+          <select id="headingSelect" class="format-select" title="Paragraph style">
+            <option value="p">Normal text</option>
+            <option value="1">Heading 1</option>
+            <option value="2">Heading 2</option>
+            <option value="3">Heading 3</option>
+          </select>
+          <select id="fontSelect" class="format-select" title="Font">
+            <option value="">Default font</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="Garamond, 'Palatino Linotype', serif">Garamond</option>
+            <option value="Arial, Helvetica, sans-serif">Arial</option>
+            <option value="Calibri, 'Segoe UI', sans-serif">Calibri</option>
+            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+            <option value="'Courier New', Courier, monospace">Courier New</option>
+          </select>
+          <button type="button" id="boldButton" class="format-button" title="Bold"><strong>B</strong></button>
+          <button type="button" id="italicButton" class="format-button" title="Italic"><em>I</em></button>
+          <button type="button" id="strikeButton" class="format-button" title="Strikethrough"><s>S</s></button>
         </div>
 
         <div id="tipTapEditor" class="rich-memory-input"></div>

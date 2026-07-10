@@ -1,6 +1,8 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import Image from "https://esm.sh/@tiptap/extension-image";
+import TextStyle from "https://esm.sh/@tiptap/extension-text-style";
+import FontFamily from "https://esm.sh/@tiptap/extension-font-family";
 
 const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
@@ -14,18 +16,85 @@ const CustomImage = Image.extend({
   draggable: false,
 
   addAttributes() {
+    // A photo node can be parsed from a bare <img> (older saved memories)
+    // or from a <figure class="memory-figure"> wrapper (current format,
+    // which carries the caption). TipTap resolves each attribute through
+    // its own parseHTML against whichever element matched — so every
+    // attribute here has to handle both shapes itself.
+    const imgOf = element =>
+      element.tagName === "IMG" ? element : element.querySelector("img");
+    const figureOf = element =>
+      element.closest ? element.closest("figure.memory-figure") : null;
+
     return {
       ...this.parent?.(),
+      src: {
+        default: null,
+        parseHTML: element => imgOf(element)?.getAttribute("src") || null
+      },
+      alt: {
+        default: null,
+        parseHTML: element => imgOf(element)?.getAttribute("alt") || null
+      },
+      title: {
+        default: null,
+        parseHTML: element => imgOf(element)?.getAttribute("title") || null
+      },
       width: {
         default: "35%",
-        parseHTML: element =>
-          element.getAttribute("data-width") || element.style.width || "35%",
-        renderHTML: attributes => ({
-          "data-width": attributes.width,
-          style: `width: ${attributes.width}; height: auto;`
-        })
+        parseHTML: element => {
+          const host = figureOf(element) || element;
+          return host.getAttribute("data-width") || host.style?.width || "35%";
+        }
+      },
+      caption: {
+        default: "",
+        parseHTML: element => {
+          const figure = figureOf(element);
+          if (figure) return figure.querySelector("figcaption")?.textContent || "";
+          return element.getAttribute("data-caption") || "";
+        }
       }
     };
+  },
+
+  // Saved memories render each photo as a <figure> with an optional
+  // <figcaption>, so the caption is physically attached to the photo and
+  // moves with it — in the memory cards, the Life Book, everywhere.
+  parseHTML() {
+    return [
+      {
+        // The figure rule consumes the whole wrapper including the
+        // figcaption, so caption text can't leak into the document as
+        // stray paragraph text.
+        tag: "figure.memory-figure",
+        getAttrs: element => (element.querySelector("img") ? null : false)
+      },
+      {
+        // Bare images (older memories, pasted content). Reject imgs that
+        // live inside one of our figures — the figure rule owns those.
+        tag: "img[src]",
+        getAttrs: element =>
+          element.closest && element.closest("figure.memory-figure") ? false : null
+      }
+    ];
+  },
+
+  renderHTML({ node }) {
+    const { src, alt, width, caption } = node.attrs;
+    const children = [["img", { src, alt: alt || "" }]];
+    if (caption && caption.trim()) {
+      children.push(["figcaption", {}, caption.trim()]);
+    }
+    return [
+      "figure",
+      {
+        class: "memory-figure",
+        "data-width": width,
+        style: `width: ${width};`
+      },
+      ...children
+    ];
   },
 
   // A custom node view: a corner handle resizes the photo by dragging, and
@@ -51,6 +120,37 @@ const CustomImage = Image.extend({
       img.draggable = false;
       img.addEventListener("dragstart", event => event.preventDefault());
       wrapper.appendChild(img);
+
+      // Editable caption line under the photo. It saves into the node's
+      // caption attribute, so it's attached to the photo and moves with it.
+      // If left empty it simply doesn't appear in the saved memory at all —
+      // no silly-looking empty caption bar.
+      const captionEl = document.createElement("div");
+      captionEl.className = "memory-image-caption";
+      captionEl.contentEditable = "true";
+      captionEl.spellcheck = true;
+      captionEl.setAttribute("data-placeholder", "Add a caption...");
+      captionEl.textContent = node.attrs.caption || "";
+      captionEl.addEventListener("dragstart", event => event.preventDefault());
+      captionEl.addEventListener("keydown", event => {
+        // Keep Enter from splitting the caption into new lines — captions
+        // are a single line. Escape or Enter just finishes editing.
+        if (event.key === "Enter" || event.key === "Escape") {
+          event.preventDefault();
+          captionEl.blur();
+        }
+        event.stopPropagation();
+      });
+      captionEl.addEventListener("blur", () => {
+        const newCaption = captionEl.textContent.trim();
+        if (newCaption === (currentNode.attrs.caption || "")) return;
+        if (typeof getPos !== "function") return;
+        const pos = getPos();
+        editor.chain().setNodeSelection(pos).updateAttributes("image", {
+          caption: newCaption
+        }).run();
+      });
+      wrapper.appendChild(captionEl);
 
       const handle = document.createElement("span");
       handle.className = "memory-image-resize-handle";
@@ -181,7 +281,7 @@ const CustomImage = Image.extend({
       }
 
       wrapper.addEventListener("pointerdown", event => {
-        if (event.target === handle) return;
+        if (event.target === handle || captionEl.contains(event.target)) return;
 
         moveStartX = event.clientX;
         moveStartY = event.clientY;
@@ -200,10 +300,16 @@ const CustomImage = Image.extend({
           img.src = updatedNode.attrs.src;
           img.alt = updatedNode.attrs.alt || "";
           wrapper.style.width = updatedNode.attrs.width || "35%";
+          // Don't rewrite the caption while the user is typing in it —
+          // only sync it when the update came from elsewhere.
+          if (document.activeElement !== captionEl) {
+            const caption = updatedNode.attrs.caption || "";
+            if (captionEl.textContent !== caption) captionEl.textContent = caption;
+          }
           return true;
         },
         stopEvent(event) {
-          return event.target === handle;
+          return event.target === handle || captionEl.contains(event.target);
         },
         ignoreMutation() {
           return true;
@@ -234,6 +340,7 @@ const ownerName = document.getElementById("ownerName");
 const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
+const menuBar = document.getElementById("menuBar");
 const yearView = document.getElementById("yearView");
 const yearTitle = document.getElementById("yearTitle");
 const yearAge = document.getElementById("yearAge");
@@ -273,7 +380,9 @@ function setupEditor() {
       // still light up if a stray native drag ever sneaks through —
       // exactly the conflict that was causing the stuck "grabbing" cursor.
       StarterKit.configure({ dropcursor: false }),
-      CustomImage.configure({ allowBase64: true })
+      CustomImage.configure({ allowBase64: true }),
+      TextStyle,
+      FontFamily
     ],
     content: "",
     editorProps: {
@@ -318,6 +427,58 @@ function setupEditor() {
       }
     }
   });
+
+  setupFormatToolbar();
+}
+
+// The Notepad-style formatting bar: paragraph/heading dropdown, bold,
+// italic, strikethrough, and a font dropdown limited to fonts that ship
+// with every mainstream device — no external font loading.
+function setupFormatToolbar() {
+  const headingSelect = document.getElementById("headingSelect");
+  const fontSelect = document.getElementById("fontSelect");
+  const boldButton = document.getElementById("boldButton");
+  const italicButton = document.getElementById("italicButton");
+  const strikeButton = document.getElementById("strikeButton");
+
+  if (!headingSelect) return;
+
+  headingSelect.addEventListener("change", () => {
+    const value = headingSelect.value;
+    if (value === "p") {
+      editor.chain().focus().setParagraph().run();
+    } else {
+      editor.chain().focus().setHeading({ level: Number(value) }).run();
+    }
+  });
+
+  fontSelect.addEventListener("change", () => {
+    const value = fontSelect.value;
+    if (value === "") {
+      editor.chain().focus().unsetFontFamily().run();
+    } else {
+      editor.chain().focus().setFontFamily(value).run();
+    }
+  });
+
+  boldButton.addEventListener("click", () => editor.chain().focus().toggleBold().run());
+  italicButton.addEventListener("click", () => editor.chain().focus().toggleItalic().run());
+  strikeButton.addEventListener("click", () => editor.chain().focus().toggleStrike().run());
+
+  // Keep the dropdowns and button states matching wherever the cursor is.
+  editor.on("selectionUpdate", () => {
+    if (editor.isActive("heading", { level: 1 })) headingSelect.value = "1";
+    else if (editor.isActive("heading", { level: 2 })) headingSelect.value = "2";
+    else if (editor.isActive("heading", { level: 3 })) headingSelect.value = "3";
+    else headingSelect.value = "p";
+
+    const currentFont = editor.getAttributes("textStyle").fontFamily || "";
+    fontSelect.value = currentFont;
+
+    boldButton.classList.toggle("is-active", editor.isActive("bold"));
+    italicButton.classList.toggle("is-active", editor.isActive("italic"));
+    strikeButton.classList.toggle("is-active", editor.isActive("strike"));
+  });
 }
 
 async function initialise() {
@@ -336,10 +497,28 @@ async function initialise() {
 function showWall() {
   setupView.classList.add("hidden");
   yearView.classList.add("hidden");
+  hideInfoPages();
   wall.classList.remove("hidden");
   lifeTools.classList.remove("hidden");
-  ownerName.textContent = settings.name ? settings.name : "";
+  menuBar.classList.remove("hidden");
+  ownerName.textContent = settings.name
+    ? `${settings.name} \u2013 a digital autobiography`
+    : "";
   createWall();
+}
+
+function hideInfoPages() {
+  document.querySelectorAll(".info-page").forEach(page => page.classList.add("hidden"));
+}
+
+function showInfoPage(pageId) {
+  setupView.classList.add("hidden");
+  yearView.classList.add("hidden");
+  wall.classList.add("hidden");
+  lifeTools.classList.add("hidden");
+  hideInfoPages();
+  const page = document.getElementById(pageId);
+  if (page) page.classList.remove("hidden");
 }
 
 function startMeWall() {
@@ -503,6 +682,14 @@ function openYear(year, age) {
   keepMemoryButton.textContent = "Keep memory";
 
   renderMemories();
+
+  // If nothing has been remembered from this year yet, skip the empty-state
+  // messaging and go straight to the entry field — no point making people
+  // click through "Record your first memory" to reach an obvious next step.
+  const yearMemories = memories[selectedYear] || [];
+  if (yearMemories.length === 0) {
+    showEditor();
+  }
 }
 
 function showEditor() {
@@ -510,6 +697,7 @@ function showEditor() {
   editor.commands.clearContent();
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.remove("hidden");
+  showEditorButton.classList.add("hidden");
   editor.commands.focus();
 }
 
@@ -607,14 +795,21 @@ function renderMemories() {
 
   const yearMemories = memories[selectedYear] || [];
 
-  if (yearMemories.length === 0) {
-    emptyYear.classList.remove("hidden");
-    showEditorButton.textContent = "Record your first memory";
-    return;
-  }
-
+  // The empty-state message is retired — years with no memories now go
+  // straight to the entry field instead (see openYear).
   emptyYear.classList.add("hidden");
-  showEditorButton.textContent = "Record another memory";
+  showEditorButton.textContent = yearMemories.length === 0
+    ? "Record your first memory"
+    : "Record another memory";
+
+  // No point showing a "record a memory" button while the entry field is
+  // already open right below it.
+  showEditorButton.classList.toggle(
+    "hidden",
+    !memoryEditor.classList.contains("hidden")
+  );
+
+  if (yearMemories.length === 0) return;
 
   yearMemories.forEach((memory, index) => {
     // Skip the memory currently open in the editor below — otherwise it
@@ -883,11 +1078,23 @@ function createLifeBook() {
           line-height: 1.6;
         }
 
+        /* A real blank line between paragraphs, so the text never piles up
+           when exported or read — and so other programs importing the PDF
+           recognise the paragraph breaks. */
+        p {
+          margin: 0 0 1em 0;
+          text-align: justify;
+        }
+
         .title-page {
           text-align: center;
           margin-top: 120px;
           margin-bottom: 120px;
           page-break-after: always;
+        }
+
+        .title-page p {
+          text-align: center;
         }
 
         h1 {
@@ -904,6 +1111,9 @@ function createLifeBook() {
           page-break-after: avoid;
         }
 
+        /* On screen, memories keep a light card look for readability.
+           In print (below) the borders and backgrounds are stripped —
+           they were the boxed-in artefact on every printed page. */
         .memory {
           margin: 28px 0;
           padding: 24px;
@@ -923,6 +1133,26 @@ function createLifeBook() {
           border-radius: 14px;
         }
 
+        figure.memory-figure {
+          display: inline-block;
+          vertical-align: top;
+          margin: 12px;
+          max-width: 100%;
+        }
+
+        figure.memory-figure img {
+          width: 100%;
+          margin: 0;
+        }
+
+        figure.memory-figure figcaption {
+          text-align: center;
+          font-size: 14px;
+          font-style: italic;
+          color: #6d6254;
+          margin-top: 8px;
+        }
+
         small {
           color: #6d6254;
         }
@@ -935,10 +1165,12 @@ function createLifeBook() {
         .print-instructions p {
           color: #6d6254;
           font-size: 14px;
+          text-align: center;
         }
 
         @page {
-          margin: 28mm;
+          size: A4;
+          margin: 25mm 22mm;
           @bottom-center {
             content: counter(page);
           }
@@ -946,7 +1178,8 @@ function createLifeBook() {
 
         @media print {
           body {
-            margin: 28mm;
+            margin: 0;
+            background: #ffffff;
           }
 
           button {
@@ -959,6 +1192,21 @@ function createLifeBook() {
 
           .year-chapter {
             page-break-before: always;
+          }
+
+          /* The reported printing artefact: every memory printed inside a
+             bordered, tinted box. In print, memories are plain flowing
+             text — like a book, not a form. */
+          .memory {
+            border: none;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            margin: 0 0 32px 0;
+          }
+
+          .memory img {
+            border-radius: 0;
           }
         }
       </style>
@@ -1177,6 +1425,18 @@ function escapeHtml(value) {
 startButton.addEventListener("click", startMeWall);
 backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
+
+menuBar.addEventListener("click", event => {
+  const item = event.target.closest(".menu-item");
+  if (!item) return;
+
+  const page = item.dataset.page;
+  if (page === "home") {
+    showWall();
+  } else {
+    showInfoPage(page);
+  }
+});
 
 cancelMemoryButton.addEventListener("click", () => {
   editor.commands.clearContent();

@@ -497,14 +497,16 @@ body {
   border: 1px solid #d8cbb8;
 }
 
-/* The photo wrapper rendered by the editor's custom image node view — lets
-   a photo be dragged to a new spot in the memory (native HTML5 drag, since
-   the node is marked draggable) and resized via the corner handle below. */
+/* The photo wrapper rendered by the editor's custom image node view.
+   inline-block (rather than block) is what lets two small photos sit side
+   by side — as long as their combined widths fit, they'll line up
+   horizontally instead of each forcing its own row. */
 .memory-image-wrapper {
   position: relative;
-  display: block;
+  display: inline-block;
+  vertical-align: top;
   max-width: 100%;
-  margin: 22px auto;
+  margin: 14px 10px;
   cursor: grab;
 }
 
@@ -525,6 +527,24 @@ body {
   border-radius: 16px;
   border: 1px solid #d8cbb8;
   pointer-events: none;
+}
+
+/* The editable caption line under each photo in the editor. Shows a faint
+   prompt when empty; an empty caption never appears in the saved memory. */
+.memory-image-caption {
+  margin-top: 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--soft-text);
+  text-align: center;
+  outline: none;
+  min-height: 18px;
+  cursor: text;
+}
+
+.memory-image-caption:empty::before {
+  content: attr(data-placeholder);
+  color: #b5ab99;
 }
 
 .memory-image-wrapper.ProseMirror-selectednode {
@@ -559,6 +579,122 @@ body {
   font-size: 15px;
   color: var(--soft-text);
   font-style: italic;
+}
+
+/* Saved photos render as figures — inline-block so side-by-side photos in
+   the editor stay side by side in the saved memory card too. */
+.memory-content figure.memory-figure {
+  display: inline-block;
+  vertical-align: top;
+  margin: 14px 10px;
+  max-width: 100%;
+}
+
+.memory-content figure.memory-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-content figure.memory-figure figcaption {
+  margin-top: 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--soft-text);
+  text-align: center;
+}
+
+.menu-bar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.menu-item {
+  border: 1px solid #d8cbb8;
+  border-radius: 999px;
+  padding: 9px 20px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--stone-light);
+}
+
+.info-page {
+  max-width: 760px;
+  margin: 40px auto 0;
+  padding: 44px;
+  background: var(--panel);
+  border: 1px solid #d8cbb8;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(70, 55, 35, 0.08);
+}
+
+.info-page h2 {
+  margin-top: 0;
+  font-size: 32px;
+  font-weight: 500;
+}
+
+.info-page p {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
+  padding: 8px 10px;
+  border: 1px solid #d8cbb8;
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.format-select {
+  border: 1px solid #d8cbb8;
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: #fffaf0;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.format-button {
+  border: 1px solid #d8cbb8;
+  border-radius: 8px;
+  min-width: 36px;
+  padding: 7px 10px;
+  background: #fffaf0;
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.format-button.is-active {
+  background: var(--stone);
+  border-color: var(--stone-dark);
+}
+
+.mic-icon {
+  font-size: 24px;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 @media (max-width: 640px) {
