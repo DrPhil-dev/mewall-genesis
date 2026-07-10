@@ -122,7 +122,6 @@ const CustomImage = Image.extend({
           isMoving = true;
           wrapper.classList.add("is-moving");
           document.body.style.cursor = "grabbing";
-          console.log("[photo-move] threshold crossed, drag started");
         }
         event.preventDefault();
       }
@@ -134,11 +133,8 @@ const CustomImage = Image.extend({
         wrapper.classList.remove("is-moving");
         document.body.style.cursor = "";
 
-        console.log("[photo-move] pointerup fired, isMoving:", isMoving, "getPos is function:", typeof getPos === "function");
-
         if (!isMoving || typeof getPos !== "function") {
           isMoving = false;
-          console.log("[photo-move] bailing: no drag was in progress");
           return;
         }
         isMoving = false;
@@ -146,28 +142,16 @@ const CustomImage = Image.extend({
         try {
           const view = editor.view;
           const dropResult = view.posAtCoords({ left: event.clientX, top: event.clientY });
-          console.log("[photo-move] dropResult from posAtCoords:", dropResult);
-
-          if (!dropResult) {
-            console.log("[photo-move] bailing: posAtCoords returned null (dropped outside the editable area)");
-            return;
-          }
+          if (!dropResult) return;
 
           const from = getPos();
           const to = from + currentNode.nodeSize;
-          console.log("[photo-move] image currently spans", from, "to", to, "— drop target pos:", dropResult.pos);
 
           // Dropped back onto (or just past) itself — nothing to do.
-          if (dropResult.pos >= from && dropResult.pos <= to) {
-            console.log("[photo-move] bailing: dropped back onto itself");
-            return;
-          }
+          if (dropResult.pos >= from && dropResult.pos <= to) return;
 
           const imageNode = view.state.doc.nodeAt(from);
-          if (!imageNode) {
-            console.log("[photo-move] bailing: no image node found at 'from' position — position may be stale");
-            return;
-          }
+          if (!imageNode) return;
 
           const tr = view.state.tr;
           tr.delete(from, to);
@@ -175,12 +159,11 @@ const CustomImage = Image.extend({
           tr.insert(mappedTarget, imageNode);
           view.dispatch(tr);
           view.focus();
-          console.log("[photo-move] move committed — inserted at mapped position", mappedTarget);
         } catch (error) {
           // If anything about the move fails unexpectedly, leave the photo
           // where it was rather than letting the error escape and risk
           // affecting anything else on the page.
-          console.error("[photo-move] threw an error:", error);
+          console.error("Could not move photo:", error);
         }
       }
 
@@ -195,12 +178,10 @@ const CustomImage = Image.extend({
         wrapper.classList.remove("is-moving");
         document.body.style.cursor = "";
         isMoving = false;
-        console.log("[photo-move] pointercancel fired — gesture was interrupted, reset without moving");
       }
 
       wrapper.addEventListener("pointerdown", event => {
         if (event.target === handle) return;
-        console.log("[photo-move] pointerdown on photo at", event.clientX, event.clientY);
 
         moveStartX = event.clientX;
         moveStartY = event.clientY;
@@ -599,6 +580,8 @@ function editMemory(index) {
   keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
   editor.commands.focus();
+  renderMemories();
+  memoryEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function deleteMemory(index) {
@@ -634,6 +617,12 @@ function renderMemories() {
   showEditorButton.textContent = "Record another memory";
 
   yearMemories.forEach((memory, index) => {
+    // Skip the memory currently open in the editor below — otherwise it
+    // shows up twice at once: once as a static card here, and again as
+    // the live thing you're editing, which is exactly the "double vision"
+    // confusion that was reported.
+    if (editingMemoryIndex === index) return;
+
     const card = document.createElement("article");
     card.className = "memory-card";
 
@@ -911,6 +900,8 @@ function createLifeBook() {
           margin-top: 60px;
           border-bottom: 1px solid #d8cbb8;
           padding-bottom: 12px;
+          break-after: avoid-page;
+          page-break-after: avoid;
         }
 
         .memory {
@@ -920,10 +911,12 @@ function createLifeBook() {
           border-radius: 18px;
           background: #fffaf0;
           page-break-inside: avoid;
+          break-inside: avoid-page;
         }
 
         .memory img {
           max-width: 100%;
+          max-height: 200mm;
           height: auto;
           display: block;
           margin: 22px auto;
@@ -932,6 +925,23 @@ function createLifeBook() {
 
         small {
           color: #6d6254;
+        }
+
+        .print-instructions {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+
+        .print-instructions p {
+          color: #6d6254;
+          font-size: 14px;
+        }
+
+        @page {
+          margin: 28mm;
+          @bottom-center {
+            content: counter(page);
+          }
         }
 
         @media print {
@@ -943,6 +953,10 @@ function createLifeBook() {
             display: none;
           }
 
+          .print-instructions {
+            display: none;
+          }
+
           .year-chapter {
             page-break-before: always;
           }
@@ -950,7 +964,10 @@ function createLifeBook() {
       </style>
     </head>
     <body>
-      <button onclick="window.print()">Print or Save as PDF</button>
+      <div class="print-instructions">
+        <button onclick="window.print()">Print or Save as PDF</button>
+        <p>For page numbers, tick "Headers and footers" in the print dialog's "More settings".</p>
+      </div>
 
       <section class="title-page">
         <h1>${escapeHtml(owner)}</h1>
@@ -1166,6 +1183,7 @@ cancelMemoryButton.addEventListener("click", () => {
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
+  renderMemories();
 });
 
 keepMemoryButton.addEventListener("click", keepMemory);
