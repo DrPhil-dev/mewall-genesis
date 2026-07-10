@@ -1,8 +1,11 @@
-import { Editor } from "https://esm.sh/@tiptap/core";
-import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import Image from "https://esm.sh/@tiptap/extension-image";
-import TextStyle from "https://esm.sh/@tiptap/extension-text-style";
-import FontFamily from "https://esm.sh/@tiptap/extension-font-family";
+// All TipTap pieces pinned to the same major version — unpinned imports
+// mean "latest", and a new TipTap major release can silently hand the
+// browser mismatched pieces that fail on editor construction.
+import { Editor } from "https://esm.sh/@tiptap/core@2";
+import StarterKit from "https://esm.sh/@tiptap/starter-kit@2";
+import Image from "https://esm.sh/@tiptap/extension-image@2";
+import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2";
+import FontFamily from "https://esm.sh/@tiptap/extension-font-family@2";
 
 const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
@@ -482,7 +485,15 @@ function setupFormatToolbar() {
 }
 
 async function initialise() {
-  setupEditor();
+  // If the rich text editor ever fails to construct (e.g. a library
+  // loading problem), the rest of the app — registration, the wall,
+  // backups — should still come up rather than dying silently on a
+  // blank screen.
+  try {
+    setupEditor();
+  } catch (error) {
+    console.error("The memory editor could not be initialised:", error);
+  }
 
   memories = await loadMemories();
 
