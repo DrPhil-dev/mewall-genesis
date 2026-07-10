@@ -355,6 +355,7 @@ const showEditorButton = document.getElementById("showEditorButton");
 const cancelMemoryButton = document.getElementById("cancelMemoryButton");
 const memoryEditor = document.getElementById("memoryEditor");
 const memoryList = document.getElementById("memoryList");
+const memoriesHeading = document.getElementById("memoriesHeading");
 const emptyYear = document.getElementById("emptyYear");
 
 const recordAudioButton = document.getElementById("recordAudioButton");
@@ -513,9 +514,37 @@ function showWall() {
   wall.classList.remove("hidden");
   lifeTools.classList.remove("hidden");
   menuBar.classList.remove("hidden");
-  ownerName.textContent = settings.name || "";
-  ownerSubtitle.classList.toggle("hidden", !settings.name);
+  updateOwnerHeader();
   createWall();
+}
+
+// The name lives in one place — settings — and everything (the header,
+// the Life Book title page) reads it from there. So adding or changing
+// it here retroactively applies to every memory ever recorded; nothing
+// is stamped per-story.
+function updateOwnerHeader() {
+  if (settings.name) {
+    ownerName.textContent = settings.name;
+    ownerName.classList.remove("owner-name-placeholder");
+    ownerSubtitle.classList.remove("hidden");
+  } else {
+    ownerName.textContent = "+ Add your name";
+    ownerName.classList.add("owner-name-placeholder");
+    ownerSubtitle.classList.add("hidden");
+  }
+  ownerName.title = "Click to change the name on this Life-Wall";
+}
+
+function changeName() {
+  const entered = prompt(
+    "What name should appear on this Life-Wall?",
+    settings.name || ""
+  );
+  if (entered === null) return; // cancelled
+
+  settings.name = entered.trim();
+  saveSettings();
+  updateOwnerHeader();
 }
 
 function hideInfoPages() {
@@ -807,8 +836,10 @@ function renderMemories() {
   const yearMemories = memories[selectedYear] || [];
 
   // The empty-state message is retired — years with no memories now go
-  // straight to the entry field instead (see openYear).
+  // straight to the entry field instead (see openYear). The "Memories"
+  // heading only appears once there's something under it.
   emptyYear.classList.add("hidden");
+  memoriesHeading.classList.toggle("hidden", yearMemories.length === 0);
   showEditorButton.textContent = yearMemories.length === 0
     ? "Record your first memory"
     : "Record another memory";
@@ -1436,6 +1467,13 @@ function escapeHtml(value) {
 startButton.addEventListener("click", startMeWall);
 backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
+
+document.getElementById("changeNameButton").addEventListener("click", changeName);
+ownerName.addEventListener("click", () => {
+  // Only meaningful once a wall exists — on the setup screen the name
+  // field is right there anyway.
+  if (settings.birthYear) changeName();
+});
 
 menuBar.addEventListener("click", event => {
   const item = event.target.closest(".menu-item");

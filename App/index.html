@@ -71,7 +71,7 @@
       </div>
 
       <section class="memories-section">
-        <h3>Memories</h3>
+        <h3 id="memoriesHeading" class="hidden">Memories</h3>
         <div id="emptyYear" class="empty-year hidden"></div>
         <div id="memoryList" class="memory-list"></div>
       </section>
@@ -131,6 +131,7 @@
     </section>
 
     <footer id="lifeTools" class="life-tools hidden">
+      <button id="changeNameButton">Change name</button>
       <button id="exportButton">Export backup</button>
       <label for="importInput" class="import-label">Import backup</label>
       <input id="importInput" type="file" accept="application/json" hidden />
