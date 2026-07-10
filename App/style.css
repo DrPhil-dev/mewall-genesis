@@ -723,6 +723,51 @@ body {
   line-height: 1;
 }
 
+/* Fixed jump-to-top / jump-to-bottom buttons, shown only when the page is
+   actually long enough to need them. */
+.scroll-jump {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+}
+
+.scroll-jump-button {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--stone-dark);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(70, 55, 35, 0.18);
+  opacity: 0.85;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.scroll-jump-button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .scroll-jump {
+    right: 8px;
+  }
+
+  .scroll-jump-button {
+    width: 40px;
+    height: 40px;
+    font-size: 19px;
+  }
+}
+
 @media (max-width: 640px) {
   .app {
     padding: 24px 12px;

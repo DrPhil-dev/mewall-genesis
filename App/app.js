@@ -1478,20 +1478,28 @@ ownerName.addEventListener("click", () => {
   if (settings.birthYear) changeName();
 });
 
-// Jump-to-top / jump-to-bottom buttons for long pages (a tall wall, or a
-// year holding pages of stories). They only appear when the page is
-// genuinely taller than the window, so short pages stay uncluttered.
+// Jump-to-top / jump-to-bottom buttons for long story pages. Wired
+// defensively: if the buttons aren't in the HTML (e.g. a mismatched
+// deploy), the app carries on without them rather than crashing —
+// a decoration should never take down the whole app.
 const scrollJump = document.getElementById("scrollJump");
+const jumpTopButton = document.getElementById("jumpTopButton");
+const jumpBottomButton = document.getElementById("jumpBottomButton");
 
-document.getElementById("jumpTopButton").addEventListener("click", () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-});
+if (jumpTopButton) {
+  jumpTopButton.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
 
-document.getElementById("jumpBottomButton").addEventListener("click", () => {
-  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-});
+if (jumpBottomButton) {
+  jumpBottomButton.addEventListener("click", () => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+  });
+}
 
 function updateScrollJumpVisibility() {
+  if (!scrollJump) return;
   // These buttons belong to the story view only — reading or writing a
   // long story is where the scrolling pain is. They never show on the
   // Home Wall or setup screens.
@@ -1501,12 +1509,14 @@ function updateScrollJumpVisibility() {
   scrollJump.classList.toggle("hidden", !(inStoryView && pageIsLong));
 }
 
-window.addEventListener("scroll", updateScrollJumpVisibility, { passive: true });
-window.addEventListener("resize", updateScrollJumpVisibility);
-// Content height also changes without scrolling or resizing — opening a
-// year, saving a memory, rebuilding the wall — so watch the page itself.
-new ResizeObserver(updateScrollJumpVisibility).observe(document.body);
-updateScrollJumpVisibility();
+if (scrollJump) {
+  window.addEventListener("scroll", updateScrollJumpVisibility, { passive: true });
+  window.addEventListener("resize", updateScrollJumpVisibility);
+  // Content height also changes without scrolling or resizing — opening a
+  // year, saving a memory, rebuilding the wall — so watch the page itself.
+  new ResizeObserver(updateScrollJumpVisibility).observe(document.body);
+  updateScrollJumpVisibility();
+}
 
 menuBar.addEventListener("click", event => {
   const item = event.target.closest(".menu-item");
