@@ -49,8 +49,19 @@ body {
 }
 
 .owner-name {
-  margin-top: 4px;
-  font-size: 24px;
+  margin: 10px 0 0;
+  font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting",
+    "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 52px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.owner-subtitle {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-style: italic;
+  letter-spacing: 0.04em;
   color: var(--soft-text);
 }
 
@@ -711,7 +722,7 @@ body {
   }
 
   .owner-name {
-    font-size: 18px;
+    font-size: 36px;
   }
 
   .wall {

@@ -340,6 +340,7 @@ const setupView = document.getElementById("setupView");
 const nameInput = document.getElementById("nameInput");
 const birthDateInput = document.getElementById("birthDateInput");
 const ownerName = document.getElementById("ownerName");
+const ownerSubtitle = document.getElementById("ownerSubtitle");
 const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
@@ -512,9 +513,8 @@ function showWall() {
   wall.classList.remove("hidden");
   lifeTools.classList.remove("hidden");
   menuBar.classList.remove("hidden");
-  ownerName.textContent = settings.name
-    ? `${settings.name} \u2013 a digital autobiography`
-    : "";
+  ownerName.textContent = settings.name || "";
+  ownerSubtitle.classList.toggle("hidden", !settings.name);
   createWall();
 }
 
@@ -1230,7 +1230,7 @@ function createLifeBook() {
 
       <section class="title-page">
         <h1>${escapeHtml(owner)}</h1>
-        <p>My Life Wall</p>
+        <p>My Life-Wall</p>
         <p>Every life has a story. This is yours.</p>
       </section>
   `;
