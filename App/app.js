@@ -516,6 +516,7 @@ function showWall() {
   menuBar.classList.remove("hidden");
   updateOwnerHeader();
   createWall();
+  updateScrollJumpVisibility();
 }
 
 // The name lives in one place — settings — and everything (the header,
@@ -722,6 +723,8 @@ function openYear(year, age) {
   keepMemoryButton.textContent = "Keep memory";
 
   renderMemories();
+
+  updateScrollJumpVisibility();
 
   // If nothing has been remembered from this year yet, skip the empty-state
   // messaging and go straight to the entry field — no point making people
@@ -1474,6 +1477,36 @@ ownerName.addEventListener("click", () => {
   // field is right there anyway.
   if (settings.birthYear) changeName();
 });
+
+// Jump-to-top / jump-to-bottom buttons for long pages (a tall wall, or a
+// year holding pages of stories). They only appear when the page is
+// genuinely taller than the window, so short pages stay uncluttered.
+const scrollJump = document.getElementById("scrollJump");
+
+document.getElementById("jumpTopButton").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.getElementById("jumpBottomButton").addEventListener("click", () => {
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+});
+
+function updateScrollJumpVisibility() {
+  // These buttons belong to the story view only — reading or writing a
+  // long story is where the scrolling pain is. They never show on the
+  // Home Wall or setup screens.
+  const inStoryView = !yearView.classList.contains("hidden");
+  const pageIsLong =
+    document.documentElement.scrollHeight > window.innerHeight * 1.5;
+  scrollJump.classList.toggle("hidden", !(inStoryView && pageIsLong));
+}
+
+window.addEventListener("scroll", updateScrollJumpVisibility, { passive: true });
+window.addEventListener("resize", updateScrollJumpVisibility);
+// Content height also changes without scrolling or resizing — opening a
+// year, saving a memory, rebuilding the wall — so watch the page itself.
+new ResizeObserver(updateScrollJumpVisibility).observe(document.body);
+updateScrollJumpVisibility();
 
 menuBar.addEventListener("click", event => {
   const item = event.target.closest(".menu-item");
