@@ -48,7 +48,7 @@ body {
   color: var(--soft-text);
 }
 
-.owner-name {
+.header p.owner-name {
   margin: 10px 0 0;
   font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting",
     "Snell Roundhand", "Apple Chancery", cursive;
@@ -57,7 +57,7 @@ body {
   color: var(--text);
 }
 
-.owner-subtitle {
+.header p.owner-subtitle {
   margin: 2px 0 0;
   font-size: 17px;
   font-style: italic;
@@ -721,7 +721,7 @@ body {
     font-size: 16px;
   }
 
-  .owner-name {
+  .header p.owner-name {
     font-size: 36px;
   }
 
