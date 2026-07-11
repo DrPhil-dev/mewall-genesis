@@ -8,6 +8,75 @@
 </head>
 <body>
   <main class="app">
+    <svg class="corner-art corner-art-left home-art hidden" width="290" height="230" viewBox="0 0 290 230" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="none" stroke="#8fa377" stroke-width="3" stroke-linecap="round">
+        <path d="M -10 20 Q 90 60 150 150 Q 170 180 175 215" />
+        <path d="M 60 52 Q 95 40 122 48" />
+        <path d="M 118 106 Q 155 92 182 102" />
+        <path d="M 158 165 Q 196 152 220 164" />
+      </g>
+      <g fill="#8fa377">
+        <ellipse cx="70" cy="38" rx="17" ry="8" transform="rotate(-18 70 38)"/>
+        <ellipse cx="104" cy="34" rx="15" ry="7" transform="rotate(-8 104 34)"/>
+        <ellipse cx="128" cy="42" rx="13" ry="6" transform="rotate(12 128 42)"/>
+        <ellipse cx="128" cy="92" rx="16" ry="7" transform="rotate(-16 128 92)"/>
+        <ellipse cx="162" cy="88" rx="14" ry="7" transform="rotate(-4 162 88)"/>
+        <ellipse cx="186" cy="96" rx="12" ry="6" transform="rotate(14 186 96)"/>
+        <ellipse cx="170" cy="150" rx="15" ry="7" transform="rotate(-14 170 150)"/>
+        <ellipse cx="202" cy="150" rx="13" ry="6" transform="rotate(0 202 150)"/>
+        <ellipse cx="224" cy="160" rx="11" ry="6" transform="rotate(16 224 160)"/>
+      </g>
+      <g fill="#a9bc8f">
+        <ellipse cx="52" cy="20" rx="13" ry="6" transform="rotate(-26 52 20)"/>
+        <ellipse cx="96" cy="66" rx="12" ry="6" transform="rotate(24 96 66)"/>
+        <ellipse cx="146" cy="122" rx="12" ry="6" transform="rotate(30 146 122)"/>
+        <ellipse cx="168" cy="192" rx="11" ry="6" transform="rotate(64 168 192)"/>
+      </g>
+    </svg>
+
+    <svg class="corner-art corner-art-right home-art hidden" width="270" height="240" viewBox="0 0 270 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="none" stroke="#8fa377" stroke-width="3" stroke-linecap="round">
+        <path d="M 280 30 Q 200 70 168 130 Q 154 158 150 196" />
+        <path d="M 214 66 Q 196 90 196 116" />
+        <path d="M 236 96 Q 224 126 230 150" />
+      </g>
+      <g fill="#a9bc8f">
+        <ellipse cx="204" cy="98" rx="12" ry="6" transform="rotate(60 204 98)"/>
+        <ellipse cx="164" cy="152" rx="12" ry="6" transform="rotate(52 164 152)"/>
+        <ellipse cx="240" cy="128" rx="11" ry="6" transform="rotate(72 240 128)"/>
+      </g>
+      <g transform="translate(150 200)">
+        <g fill="#f0d9a0" stroke="#d8b96a" stroke-width="2">
+          <ellipse cx="0" cy="-22" rx="11" ry="17"/>
+          <ellipse cx="21" cy="-8" rx="11" ry="17" transform="rotate(72 21 -8)"/>
+          <ellipse cx="13" cy="18" rx="11" ry="17" transform="rotate(144 13 18)"/>
+          <ellipse cx="-13" cy="18" rx="11" ry="17" transform="rotate(-144 -13 18)"/>
+          <ellipse cx="-21" cy="-8" rx="11" ry="17" transform="rotate(-72 -21 -8)"/>
+        </g>
+        <circle r="10" fill="#ddb25c"/>
+        <circle r="4.5" fill="#b88230"/>
+      </g>
+      <g transform="translate(196 118) scale(0.78)">
+        <g fill="#f3e3c0" stroke="#d8b96a" stroke-width="2">
+          <ellipse cx="0" cy="-22" rx="11" ry="17"/>
+          <ellipse cx="21" cy="-8" rx="11" ry="17" transform="rotate(72 21 -8)"/>
+          <ellipse cx="13" cy="18" rx="11" ry="17" transform="rotate(144 13 18)"/>
+          <ellipse cx="-13" cy="18" rx="11" ry="17" transform="rotate(-144 -13 18)"/>
+          <ellipse cx="-21" cy="-8" rx="11" ry="17" transform="rotate(-72 -21 -8)"/>
+        </g>
+        <circle r="9" fill="#ddb25c"/>
+        <circle r="4" fill="#b88230"/>
+      </g>
+      <g transform="translate(232 152) scale(0.55)">
+        <g fill="#f0d9a0" stroke="#d8b96a" stroke-width="2.5">
+          <ellipse cx="0" cy="-20" rx="11" ry="16"/>
+          <ellipse cx="18" cy="8" rx="11" ry="16" transform="rotate(110 18 8)"/>
+          <ellipse cx="-18" cy="8" rx="11" ry="16" transform="rotate(-110 -18 8)"/>
+        </g>
+        <circle r="8" fill="#ddb25c"/>
+      </g>
+    </svg>
+
     <header class="header">
       <h1>My Life-Wall</h1>
       <p id="ownerName" class="owner-name"></p>
@@ -64,7 +133,104 @@
       <button id="startButton" class="keep-button">Begin</button>
     </section>
 
-    <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
+    <div class="wall-stage">
+      <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
+
+      <svg class="corner-writer corner-writer-left home-art hidden" width="150" height="106" viewBox="0 0 340 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="170" cy="222" rx="128" ry="12" fill="#e3ddcd"/>
+        <g fill="#b99f78" stroke="#96774e" stroke-width="2">
+          <rect x="66" y="118" width="12" height="66" rx="5"/>
+          <rect x="62" y="176" width="52" height="10" rx="5"/>
+          <rect x="66" y="182" width="10" height="38" rx="4"/>
+          <rect x="100" y="182" width="10" height="38" rx="4"/>
+        </g>
+        <g>
+          <path d="M 96 128 Q 92 168 100 184 L 138 184 Q 144 156 138 130 Q 120 118 96 128 Z"
+                fill="#8fa377" stroke="#6c7d54" stroke-width="2.5"/>
+          <path d="M 104 184 L 104 214 Q 104 220 112 220 L 124 220" fill="none" stroke="#6d6254" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 130 184 L 132 212 Q 133 219 141 219 L 152 219" fill="none" stroke="#6d6254" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 132 138 Q 168 146 192 158" fill="none" stroke="#8fa377" stroke-width="11" stroke-linecap="round"/>
+          <path d="M 132 138 Q 168 146 192 158" fill="none" stroke="#6c7d54" stroke-width="13" stroke-linecap="round" opacity="0.25"/>
+          <circle cx="196" cy="160" r="8" fill="#eccfa8" stroke="#c9a077" stroke-width="2"/>
+          <circle cx="118" cy="102" r="24" fill="#eccfa8" stroke="#c9a077" stroke-width="2.5"/>
+          <path d="M 96 96 Q 96 76 118 76 Q 140 76 141 96 Q 130 86 118 88 Q 104 90 96 96 Z"
+                fill="#6d6254"/>
+          <circle cx="128" cy="100" r="2.6" fill="#3a352d"/>
+          <path d="M 126 112 Q 132 116 137 111" fill="none" stroke="#3a352d" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="134" cy="108" r="4" fill="#e8b48c" opacity="0.55"/>
+        </g>
+        <g>
+          <rect x="160" y="168" width="120" height="14" rx="6" fill="#d8c4a4" stroke="#96774e" stroke-width="2"/>
+          <rect x="170" y="182" width="12" height="38" rx="4" fill="#b99f78" stroke="#96774e" stroke-width="2"/>
+          <rect x="258" y="182" width="12" height="38" rx="4" fill="#b99f78" stroke="#96774e" stroke-width="2"/>
+        </g>
+        <g transform="rotate(-4 214 158)">
+          <rect x="184" y="146" width="62" height="26" rx="3" fill="#fffaf0" stroke="#d8cbb8" stroke-width="1.6"/>
+          <line x1="192" y1="155" x2="228" y2="155" stroke="#b5ab99" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="192" y1="162" x2="238" y2="162" stroke="#b5ab99" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(-32 200 156)">
+          <line x1="200" y1="156" x2="200" y2="108" stroke="#96774e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 200 108 Q 188 84 198 62 Q 203 78 202 92 Q 210 74 220 66 Q 210 84 206 100 Q 203 106 200 108 Z"
+                fill="#ddb25c" stroke="#b88230" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M 199 104 Q 196 86 199 70" fill="none" stroke="#b88230" stroke-width="1.4"/>
+        </g>
+        <g>
+          <path d="M 252 156 Q 250 168 256 168 L 268 168 Q 274 168 272 156 Q 269 150 262 150 Q 255 150 252 156 Z"
+                fill="#6d6254" stroke="#3a352d" stroke-width="2"/>
+          <ellipse cx="262" cy="151" rx="7" ry="2.6" fill="#3a352d"/>
+        </g>
+      </svg>
+
+      <!-- Same figure, mirrored (scaleX(-1) in CSS) — so the pair face
+           each other across the bottom of the wall, per the client's
+           "roll it over" note. -->
+      <svg class="corner-writer corner-writer-right home-art hidden" width="150" height="106" viewBox="0 0 340 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="170" cy="222" rx="128" ry="12" fill="#e3ddcd"/>
+        <g fill="#b99f78" stroke="#96774e" stroke-width="2">
+          <rect x="66" y="118" width="12" height="66" rx="5"/>
+          <rect x="62" y="176" width="52" height="10" rx="5"/>
+          <rect x="66" y="182" width="10" height="38" rx="4"/>
+          <rect x="100" y="182" width="10" height="38" rx="4"/>
+        </g>
+        <g>
+          <path d="M 96 128 Q 92 168 100 184 L 138 184 Q 144 156 138 130 Q 120 118 96 128 Z"
+                fill="#8fa377" stroke="#6c7d54" stroke-width="2.5"/>
+          <path d="M 104 184 L 104 214 Q 104 220 112 220 L 124 220" fill="none" stroke="#6d6254" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 130 184 L 132 212 Q 133 219 141 219 L 152 219" fill="none" stroke="#6d6254" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 132 138 Q 168 146 192 158" fill="none" stroke="#8fa377" stroke-width="11" stroke-linecap="round"/>
+          <path d="M 132 138 Q 168 146 192 158" fill="none" stroke="#6c7d54" stroke-width="13" stroke-linecap="round" opacity="0.25"/>
+          <circle cx="196" cy="160" r="8" fill="#eccfa8" stroke="#c9a077" stroke-width="2"/>
+          <circle cx="118" cy="102" r="24" fill="#eccfa8" stroke="#c9a077" stroke-width="2.5"/>
+          <path d="M 96 96 Q 96 76 118 76 Q 140 76 141 96 Q 130 86 118 88 Q 104 90 96 96 Z"
+                fill="#6d6254"/>
+          <circle cx="128" cy="100" r="2.6" fill="#3a352d"/>
+          <path d="M 126 112 Q 132 116 137 111" fill="none" stroke="#3a352d" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="134" cy="108" r="4" fill="#e8b48c" opacity="0.55"/>
+        </g>
+        <g>
+          <rect x="160" y="168" width="120" height="14" rx="6" fill="#d8c4a4" stroke="#96774e" stroke-width="2"/>
+          <rect x="170" y="182" width="12" height="38" rx="4" fill="#b99f78" stroke="#96774e" stroke-width="2"/>
+          <rect x="258" y="182" width="12" height="38" rx="4" fill="#b99f78" stroke="#96774e" stroke-width="2"/>
+        </g>
+        <g transform="rotate(-4 214 158)">
+          <rect x="184" y="146" width="62" height="26" rx="3" fill="#fffaf0" stroke="#d8cbb8" stroke-width="1.6"/>
+          <line x1="192" y1="155" x2="228" y2="155" stroke="#b5ab99" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="192" y1="162" x2="238" y2="162" stroke="#b5ab99" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+        <g transform="rotate(-32 200 156)">
+          <line x1="200" y1="156" x2="200" y2="108" stroke="#96774e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 200 108 Q 188 84 198 62 Q 203 78 202 92 Q 210 74 220 66 Q 210 84 206 100 Q 203 106 200 108 Z"
+                fill="#ddb25c" stroke="#b88230" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M 199 104 Q 196 86 199 70" fill="none" stroke="#b88230" stroke-width="1.4"/>
+        </g>
+        <g>
+          <path d="M 252 156 Q 250 168 256 168 L 268 168 Q 274 168 272 156 Q 269 150 262 150 Q 255 150 252 156 Z"
+                fill="#6d6254" stroke="#3a352d" stroke-width="2"/>
+          <ellipse cx="262" cy="151" rx="7" ry="2.6" fill="#3a352d"/>
+        </g>
+      </svg>
+    </div>
 
     <section id="yearView" class="year-view hidden">
       <button id="backButton" class="back-button">← Home Wall</button>

@@ -29,6 +29,55 @@ body {
 .app {
   min-height: 100vh;
   padding: 48px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.corner-art {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.corner-art-left { left: 0; }
+.corner-art-right { right: 0; }
+
+.header {
+  position: relative;
+  z-index: 1;
+}
+
+.wall-stage {
+  position: relative;
+}
+
+.corner-writer {
+  position: absolute;
+  bottom: -14px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.corner-writer-left {
+  left: -30px;
+}
+
+.corner-writer-right {
+  right: -30px;
+  transform: scaleX(-1);
+}
+
+@media (max-width: 760px) {
+  .corner-art {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .corner-writer {
+    display: none;
+  }
 }
 
 .header {
