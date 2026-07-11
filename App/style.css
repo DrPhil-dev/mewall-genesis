@@ -817,6 +817,20 @@ body {
   border-color: var(--stone-dark);
 }
 
+/* Links inside a story — both while writing and in the saved memory card. */
+.tiptap a,
+.memory-content a {
+  color: #8a6a2e;
+  text-decoration: underline;
+  text-decoration-color: #d8b96a;
+  text-underline-offset: 2px;
+}
+
+.tiptap a:hover,
+.memory-content a:hover {
+  color: #6b5122;
+}
+
 .mic-icon {
   font-size: 24px;
   vertical-align: middle;

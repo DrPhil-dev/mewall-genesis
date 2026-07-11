@@ -6,6 +6,7 @@ import StarterKit from "https://esm.sh/@tiptap/starter-kit@2";
 import Image from "https://esm.sh/@tiptap/extension-image@2";
 import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2";
 import FontFamily from "https://esm.sh/@tiptap/extension-font-family@2";
+import Link from "https://esm.sh/@tiptap/extension-link@2";
 
 const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
@@ -389,7 +390,16 @@ function setupEditor() {
       StarterKit.configure({ dropcursor: false }),
       CustomImage.configure({ allowBase64: true }),
       TextStyle,
-      FontFamily
+      FontFamily,
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: false,
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank"
+        }
+      })
     ],
     content: "",
     editorProps: {
@@ -447,6 +457,7 @@ function setupFormatToolbar() {
   const boldButton = document.getElementById("boldButton");
   const italicButton = document.getElementById("italicButton");
   const strikeButton = document.getElementById("strikeButton");
+  const linkButton = document.getElementById("linkButton");
 
   if (!headingSelect) return;
 
@@ -472,6 +483,25 @@ function setupFormatToolbar() {
   italicButton.addEventListener("click", () => editor.chain().focus().toggleItalic().run());
   strikeButton.addEventListener("click", () => editor.chain().focus().toggleStrike().run());
 
+  linkButton.addEventListener("click", () => {
+    // Already a link — a second click removes it, same toggle pattern as
+    // the other formatting buttons.
+    if (editor.isActive("link")) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+
+    if (editor.state.selection.empty) {
+      alert("Select some text first, then click Link to turn it into one.");
+      return;
+    }
+
+    const url = prompt("Link to which web address?", "https://");
+    if (!url || !url.trim() || url.trim() === "https://") return;
+
+    editor.chain().focus().setLink({ href: url.trim() }).run();
+  });
+
   // Keep the dropdowns and button states matching wherever the cursor is.
   editor.on("selectionUpdate", () => {
     if (editor.isActive("heading", { level: 1 })) headingSelect.value = "1";
@@ -485,6 +515,7 @@ function setupFormatToolbar() {
     boldButton.classList.toggle("is-active", editor.isActive("bold"));
     italicButton.classList.toggle("is-active", editor.isActive("italic"));
     strikeButton.classList.toggle("is-active", editor.isActive("strike"));
+    linkButton.classList.toggle("is-active", editor.isActive("link"));
   });
 }
 
