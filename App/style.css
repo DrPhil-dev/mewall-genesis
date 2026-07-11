@@ -60,7 +60,7 @@ body {
   bottom: 10px;
   z-index: 1;
   pointer-events: none;
-  width: 130px;
+  width: 165px;
   height: auto;
 }
 
@@ -72,6 +72,8 @@ body {
   right: 14px;
 }
 
+/* No room for the foliage/flowers on phones — hidden entirely rather
+   than shown small. */
 @media (max-width: 760px) {
   .corner-art {
     display: none;
@@ -80,7 +82,22 @@ body {
 
 @media (max-width: 900px) {
   .corner-writer {
-    display: none;
+    width: 98px;
+    bottom: 4px;
+  }
+
+  .corner-writer-left {
+    left: 4px;
+  }
+
+  .corner-writer-right {
+    right: 4px;
+  }
+}
+
+@media (max-width: 500px) {
+  .corner-writer {
+    width: 66px;
   }
 }
 
