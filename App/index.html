@@ -16,11 +16,20 @@
 
       <nav id="menuBar" class="menu-bar hidden" aria-label="Main menu">
         <button type="button" class="menu-item" data-page="home">Home Wall</button>
+        <button type="button" class="menu-item" data-page="pageForeword">Foreword</button>
         <button type="button" class="menu-item" data-page="pageWelcome">Welcome</button>
         <button type="button" class="menu-item" data-page="pageHowTo">How to use</button>
         <button type="button" class="menu-item" data-page="pageFeatures">Features</button>
       </nav>
     </header>
+
+    <section id="pageForeword" class="info-page hidden">
+      <h2>Foreword</h2>
+      <p class="foreword-hint">An introduction to your book — why you're writing it, who it's for, what these years have meant. It will appear at the front of your Life Book.</p>
+      <textarea id="forewordText" class="foreword-text" rows="12" placeholder="Write your foreword here..."></textarea>
+      <button id="saveForewordButton" class="keep-button">Keep foreword</button>
+      <p id="forewordStatus" class="foreword-status hidden">Saved.</p>
+    </section>
 
     <section id="pageWelcome" class="info-page hidden">
       <h2>Welcome to My Life-Wall</h2>

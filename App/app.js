@@ -356,6 +356,8 @@ const cancelMemoryButton = document.getElementById("cancelMemoryButton");
 const memoryEditor = document.getElementById("memoryEditor");
 const memoryList = document.getElementById("memoryList");
 const memoriesHeading = document.getElementById("memoriesHeading");
+const forewordText = document.getElementById("forewordText");
+const forewordStatus = document.getElementById("forewordStatus");
 const emptyYear = document.getElementById("emptyYear");
 
 const recordAudioButton = document.getElementById("recordAudioButton");
@@ -560,6 +562,12 @@ function showInfoPage(pageId) {
   hideInfoPages();
   const page = document.getElementById(pageId);
   if (page) page.classList.remove("hidden");
+
+  // The Foreword page is editable — load whatever's been saved so far.
+  if (pageId === "pageForeword") {
+    forewordText.value = settings.foreword || "";
+    forewordStatus.classList.add("hidden");
+  }
 }
 
 function startMeWall() {
@@ -1239,6 +1247,10 @@ function createLifeBook() {
             page-break-before: always;
           }
 
+          .foreword-chapter {
+            page-break-before: always;
+          }
+
           /* The reported printing artefact: every memory printed inside a
              bordered, tinted box. In print, memories are plain flowing
              text — like a book, not a form. */
@@ -1265,9 +1277,26 @@ function createLifeBook() {
       <section class="title-page">
         <h1>${escapeHtml(owner)}</h1>
         <p>My Life-Wall</p>
-        <p>Every life has a story. This is yours.</p>
+        <p>Every life has a story. This is mine.</p>
       </section>
   `;
+
+  // The foreword, if one has been written, opens the book — its own page
+  // straight after the title, like a real book.
+  if (settings.foreword && settings.foreword.trim()) {
+    const forewordParagraphs = settings.foreword
+      .trim()
+      .split(/\n+/)
+      .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
+      .join("\n");
+
+    bookHtml += `
+      <section class="foreword-chapter">
+        <h2>Foreword</h2>
+        ${forewordParagraphs}
+      </section>
+  `;
+  }
 
   years.forEach((year) => {
     const age = Number(year) - birthYear;
@@ -1472,6 +1501,15 @@ backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
 
 document.getElementById("changeNameButton").addEventListener("click", changeName);
+
+// The foreword lives in settings, so it's automatically included in
+// export/import backups alongside the name and birth date.
+document.getElementById("saveForewordButton").addEventListener("click", () => {
+  settings.foreword = forewordText.value.trim();
+  saveSettings();
+  forewordStatus.classList.remove("hidden");
+  setTimeout(() => forewordStatus.classList.add("hidden"), 2500);
+});
 ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
   // field is right there anyway.
