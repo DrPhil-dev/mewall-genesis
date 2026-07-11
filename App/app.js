@@ -509,6 +509,15 @@ async function initialise() {
   showWall();
 }
 
+// The homepage artwork (corner foliage/flowers and the quill writer)
+// belongs to the Home Wall view only — it steps aside inside a year,
+// on info pages, and during setup.
+function setHomeArtVisible(visible) {
+  document.querySelectorAll(".home-art").forEach(el => {
+    el.classList.toggle("hidden", !visible);
+  });
+}
+
 function showWall() {
   setupView.classList.add("hidden");
   yearView.classList.add("hidden");
@@ -518,6 +527,7 @@ function showWall() {
   menuBar.classList.remove("hidden");
   updateOwnerHeader();
   createWall();
+  setHomeArtVisible(true);
   updateScrollJumpVisibility();
 }
 
@@ -560,6 +570,7 @@ function showInfoPage(pageId) {
   wall.classList.add("hidden");
   lifeTools.classList.add("hidden");
   hideInfoPages();
+  setHomeArtVisible(false);
   const page = document.getElementById(pageId);
   if (page) page.classList.remove("hidden");
 
@@ -723,6 +734,7 @@ function openYear(year, age) {
   wall.classList.add("hidden");
   yearView.classList.remove("hidden");
   memoryEditor.classList.add("hidden");
+  setHomeArtVisible(false);
 
   yearTitle.textContent = `${year}`;
   yearAge.textContent = `Age ${age}`;
@@ -1354,6 +1366,7 @@ async function resetMeWall() {
   wall.classList.add("hidden");
   yearView.classList.add("hidden");
   lifeTools.classList.add("hidden");
+  setHomeArtVisible(false);
   setupView.classList.remove("hidden");
 }
 
