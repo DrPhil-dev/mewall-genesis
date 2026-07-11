@@ -50,22 +50,26 @@ body {
 
 .wall-stage {
   position: relative;
+  width: min(100%, 1260px);
+  max-width: 1260px;
+  margin: 0 auto;
 }
 
 .corner-writer {
   position: absolute;
-  bottom: -14px;
+  bottom: 10px;
   z-index: 1;
   pointer-events: none;
+  width: 130px;
+  height: auto;
 }
 
 .corner-writer-left {
-  left: -30px;
+  left: 14px;
 }
 
 .corner-writer-right {
-  right: -30px;
-  transform: scaleX(-1);
+  right: 14px;
 }
 
 @media (max-width: 760px) {
