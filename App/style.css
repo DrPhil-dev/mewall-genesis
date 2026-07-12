@@ -632,8 +632,16 @@ body {
    regardless of how many there are, while ordinary text stays left-aligned
    exactly as before. Flex + wrap does this without touching text-align:
    every non-photo child is forced to its own full-width line (so it's
-   unaffected by the centering), while photo figures — which size to their
-   own content — are free to sit together and get centered as a run. */
+   unaffected by the centering), while photos — which size to their own
+   content — are free to sit together and get centered as a run.
+
+   The two contexts render photos as different elements, so each needs its
+   own exclusion: the LIVE editor's node view renders a photo as
+   <div class="memory-image-wrapper">, while the SAVED/static display
+   (memory cards, Life Book) renders it as <figure class="memory-figure">.
+   Excluding only one of these left the other being force-fit to
+   flex-basis: 100%, which silently overrides any inline width — that was
+   the actual cause of Small/Medium not visibly working in the editor. */
 .tiptap,
 .memory-content {
   display: flex;
@@ -643,7 +651,7 @@ body {
   align-content: flex-start;
 }
 
-.tiptap > *:not(figure.memory-figure),
+.tiptap > *:not(.memory-image-wrapper),
 .memory-content > *:not(figure.memory-figure) {
   flex: 1 1 100%;
   width: 100%;
@@ -670,6 +678,7 @@ body {
   vertical-align: top;
   max-width: 100%;
   min-width: 0;
+  flex: 0 0 auto;
   margin: 14px 10px;
   cursor: grab;
 }
@@ -753,6 +762,7 @@ body {
   margin: 14px 10px;
   max-width: 100%;
   min-width: 0;
+  flex: 0 0 auto;
 }
 
 .memory-content figure.memory-figure img {
