@@ -263,6 +263,7 @@ const CustomImage = Image.extend({
           tr.insert(mappedTarget, imageNode);
           view.dispatch(tr);
           view.focus();
+          ensureEditableEdges();
         } catch (error) {
           // If anything about the move fails unexpectedly, leave the photo
           // where it was rather than letting the error escape and risk
@@ -359,6 +360,10 @@ const memoryList = document.getElementById("memoryList");
 const memoriesHeading = document.getElementById("memoriesHeading");
 const forewordText = document.getElementById("forewordText");
 const forewordStatus = document.getElementById("forewordStatus");
+const afterwordText = document.getElementById("afterwordText");
+const afterwordStatus = document.getElementById("afterwordStatus");
+const forewordBrick = document.getElementById("forewordBrick");
+const afterwordBrick = document.getElementById("afterwordBrick");
 const emptyYear = document.getElementById("emptyYear");
 
 const recordAudioButton = document.getElementById("recordAudioButton");
@@ -560,6 +565,11 @@ function showWall() {
   createWall();
   setHomeArtVisible(true);
   updateScrollJumpVisibility();
+
+  // The bricks glow gold once something's actually been written, same
+  // visual language as a year brick with a memory in it.
+  forewordBrick.classList.toggle("has-content", Boolean(settings.foreword && settings.foreword.trim()));
+  afterwordBrick.classList.toggle("has-content", Boolean(settings.afterword && settings.afterword.trim()));
 }
 
 // The name lives in one place — settings — and everything (the header,
@@ -576,12 +586,12 @@ function updateOwnerHeader() {
     ownerName.classList.add("owner-name-placeholder");
     ownerSubtitle.classList.add("hidden");
   }
-  ownerName.title = "Click to change the name on this Life-Wall";
+  ownerName.title = "Click to change the name on this Life Wall";
 }
 
 function changeName() {
   const entered = prompt(
-    "What name should appear on this Life-Wall?",
+    "What name should appear on this Life Wall?",
     settings.name || ""
   );
   if (entered === null) return; // cancelled
@@ -609,6 +619,11 @@ function showInfoPage(pageId) {
   if (pageId === "pageForeword") {
     forewordText.value = settings.foreword || "";
     forewordStatus.classList.add("hidden");
+  }
+
+  if (pageId === "pageAfterword") {
+    afterwordText.value = settings.afterword || "";
+    afterwordStatus.classList.add("hidden");
   }
 }
 
@@ -859,6 +874,7 @@ function editMemory(index) {
 
   editingMemoryIndex = index;
   editor.commands.setContent(memory.html || `<p>${escapeHtml(memory.text || "")}</p>`);
+  ensureEditableEdges();
   keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
   editor.commands.focus();
@@ -994,6 +1010,39 @@ function compressImageFile(file) {
   });
 }
 
+// Photos are block-level with no text of their own — if one sits at the
+// very start or end of a memory, there's nowhere to click to get a text
+// cursor without dragging the photo out of the way first. This guarantees
+// an empty, clickable paragraph always exists before/after a leading or
+// trailing photo, so a click always lands you a working cursor.
+function ensureEditableEdges() {
+  const doc = editor.state.doc;
+  if (doc.childCount === 0) return;
+
+  const paragraph = editor.schema.nodes.paragraph;
+  if (!paragraph) return;
+
+  const tr = editor.state.tr;
+  let changed = false;
+
+  // Insert at the end first, using the size of the *original* document —
+  // safe to do before touching the start, since adding something at the
+  // end never shifts position 0.
+  if (doc.lastChild && doc.lastChild.type.name === "image") {
+    tr.insert(doc.content.size, paragraph.create());
+    changed = true;
+  }
+
+  if (doc.firstChild && doc.firstChild.type.name === "image") {
+    tr.insert(0, paragraph.create());
+    changed = true;
+  }
+
+  if (changed) {
+    editor.view.dispatch(tr);
+  }
+}
+
 function insertPhoto(file) {
   if (!file || !file.type.startsWith("image/")) return;
 
@@ -1004,6 +1053,7 @@ function insertPhoto(file) {
         alt: "Memory photograph",
         width: DEFAULT_PHOTO_WIDTH
       }).run();
+      ensureEditableEdges();
     })
     .catch(error => {
       console.error("Could not add photo:", error);
@@ -1199,10 +1249,10 @@ function createLifeBook() {
         }
 
         h2 {
-          font-size: 34px;
-          margin-top: 60px;
+          font-size: 26px;
+          margin-top: 48px;
           border-bottom: 1px solid #d8cbb8;
-          padding-bottom: 12px;
+          padding-bottom: 10px;
           break-after: avoid-page;
           page-break-after: avoid;
         }
@@ -1319,7 +1369,7 @@ function createLifeBook() {
 
       <section class="title-page">
         <h1>${escapeHtml(owner)}</h1>
-        <p>My Life-Wall</p>
+        <p>My Life Wall</p>
         <p>Every life has a story. This is mine.</p>
       </section>
   `;
@@ -1355,13 +1405,29 @@ function createLifeBook() {
       bookHtml += `
         <article class="memory">
           ${cleanMemoryHtml(content)}
-          <small>${formatDate(memory.createdAt)}</small>
         </article>
       `;
     });
 
     bookHtml += `</section>`;
   });
+
+  // The afterword, if one has been written, closes the book — its own
+  // page at the very end, after every year.
+  if (settings.afterword && settings.afterword.trim()) {
+    const afterwordParagraphs = settings.afterword
+      .trim()
+      .split(/\n+/)
+      .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
+      .join("\n");
+
+    bookHtml += `
+      <section class="foreword-chapter">
+        <h2>Afterword</h2>
+        ${afterwordParagraphs}
+      </section>
+  `;
+  }
 
   bookHtml += `
     </body>
@@ -1553,7 +1619,22 @@ document.getElementById("saveForewordButton").addEventListener("click", () => {
   saveSettings();
   forewordStatus.classList.remove("hidden");
   setTimeout(() => forewordStatus.classList.add("hidden"), 2500);
+  forewordBrick.classList.toggle("has-content", Boolean(settings.foreword));
 });
+
+document.getElementById("saveAfterwordButton").addEventListener("click", () => {
+  settings.afterword = afterwordText.value.trim();
+  saveSettings();
+  afterwordStatus.classList.remove("hidden");
+  setTimeout(() => afterwordStatus.classList.add("hidden"), 2500);
+  afterwordBrick.classList.toggle("has-content", Boolean(settings.afterword));
+});
+
+// Foreword and Afterword have no menu entry — the long bricks framing the
+// wall are the only way in, per the client's spec.
+forewordBrick.addEventListener("click", () => showInfoPage("pageForeword"));
+afterwordBrick.addEventListener("click", () => showInfoPage("pageAfterword"));
+
 ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
   // field is right there anyway.

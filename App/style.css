@@ -33,16 +33,6 @@ body {
   overflow-x: hidden;
 }
 
-.corner-art {
-  position: absolute;
-  top: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.corner-art-left { left: 0; }
-.corner-art-right { right: 0; }
-
 .header {
   position: relative;
   z-index: 1;
@@ -70,14 +60,6 @@ body {
 
 .corner-writer-right {
   right: 14px;
-}
-
-/* No room for the foliage/flowers on phones — hidden entirely rather
-   than shown small. */
-@media (max-width: 760px) {
-  .corner-art {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {
@@ -122,7 +104,8 @@ body {
   margin: 10px 0 0;
   font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting",
     "Snell Roundhand", "Apple Chancery", cursive;
-  font-size: 52px;
+  font-size: 64px;
+  font-weight: bold;
   line-height: 1.15;
   color: var(--text);
   cursor: pointer;
@@ -150,7 +133,7 @@ body {
   width: min(100%, 1260px);
   max-width: 1260px;
   margin: 0 auto;
-  padding: 42px 40px;
+  padding: 42px 64px;
   background:
     radial-gradient(circle at 30% 0%, rgba(255, 255, 250, 0.80), transparent 42%),
     linear-gradient(180deg, #f2efe4, var(--mortar));
@@ -161,6 +144,68 @@ body {
     inset 0 0 46px rgba(120, 110, 80, 0.08),
     0 24px 70px rgba(90, 84, 66, 0.10);
   overflow: hidden;
+  position: relative;
+}
+
+/* Blank boundary bricks — a purely decorative framing column down each
+   inner edge of the wall. Not real bricks in the data sense (they don't
+   participate in the responsive brick-count layout at all), just a
+   repeating pattern sized to look like a stack of blank bricks. */
+.wall::before,
+.wall::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--stone-light) 0px,
+    var(--stone-light) 66px,
+    var(--mortar) 66px,
+    var(--mortar) 76px
+  );
+  opacity: 0.55;
+}
+
+.wall::before { left: 0; }
+.wall::after { right: 0; }
+
+/* Long narrow bricks that open the Foreword/Afterword pages — the only
+   way into either, per the client's spec. Styled like a stretched brick
+   rather than an ordinary button. */
+.edge-brick {
+  display: block;
+  width: min(100%, 1260px);
+  max-width: 1260px;
+  margin: 0 auto 14px;
+  padding: 14px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 132, 110, 0.75);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.30), transparent 35%),
+    linear-gradient(145deg, var(--stone-light), var(--stone));
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+#afterwordBrick {
+  margin: 14px auto 0;
+}
+
+.edge-brick.has-content {
+  background:
+    radial-gradient(circle at 42% 22%, rgba(255, 238, 184, 0.70), transparent 52%),
+    linear-gradient(145deg, #edca82, #d0a155);
+  border-color: #9b6f31;
+}
+
+.edge-brick:hover {
+  filter: brightness(1.03);
 }
 
 .brick-row {
@@ -583,6 +628,28 @@ body {
   outline: none;
 }
 
+/* Photos need to center as a group (solo, or several side by side),
+   regardless of how many there are, while ordinary text stays left-aligned
+   exactly as before. Flex + wrap does this without touching text-align:
+   every non-photo child is forced to its own full-width line (so it's
+   unaffected by the centering), while photo figures — which size to their
+   own content — are free to sit together and get centered as a run. */
+.tiptap,
+.memory-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.tiptap > *:not(figure.memory-figure),
+.memory-content > *:not(figure.memory-figure) {
+  flex: 1 1 100%;
+  width: 100%;
+  text-align: left;
+}
+
 .tiptap img {
   display: block;
   width: 35%;
@@ -896,12 +963,22 @@ body {
   }
 
   .header p.owner-name {
-    font-size: 36px;
+    font-size: 44px;
   }
 
   .wall {
     padding: 20px 10px;
     border-radius: 16px;
+  }
+
+  .wall::before,
+  .wall::after {
+    display: none;
+  }
+
+  .edge-brick {
+    font-size: 15px;
+    padding: 11px 0;
   }
 
   .brick-row {

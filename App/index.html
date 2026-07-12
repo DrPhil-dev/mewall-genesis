@@ -3,89 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Life-Wall</title>
+  <title>My Life Wall</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app">
-    <svg class="corner-art corner-art-left home-art hidden" width="290" height="230" viewBox="0 0 290 230" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g fill="none" stroke="#8fa377" stroke-width="3" stroke-linecap="round">
-        <path d="M -10 20 Q 90 60 150 150 Q 170 180 175 215" />
-        <path d="M 60 52 Q 95 40 122 48" />
-        <path d="M 118 106 Q 155 92 182 102" />
-        <path d="M 158 165 Q 196 152 220 164" />
-      </g>
-      <g fill="#8fa377">
-        <ellipse cx="70" cy="38" rx="17" ry="8" transform="rotate(-18 70 38)"/>
-        <ellipse cx="104" cy="34" rx="15" ry="7" transform="rotate(-8 104 34)"/>
-        <ellipse cx="128" cy="42" rx="13" ry="6" transform="rotate(12 128 42)"/>
-        <ellipse cx="128" cy="92" rx="16" ry="7" transform="rotate(-16 128 92)"/>
-        <ellipse cx="162" cy="88" rx="14" ry="7" transform="rotate(-4 162 88)"/>
-        <ellipse cx="186" cy="96" rx="12" ry="6" transform="rotate(14 186 96)"/>
-        <ellipse cx="170" cy="150" rx="15" ry="7" transform="rotate(-14 170 150)"/>
-        <ellipse cx="202" cy="150" rx="13" ry="6" transform="rotate(0 202 150)"/>
-        <ellipse cx="224" cy="160" rx="11" ry="6" transform="rotate(16 224 160)"/>
-      </g>
-      <g fill="#a9bc8f">
-        <ellipse cx="52" cy="20" rx="13" ry="6" transform="rotate(-26 52 20)"/>
-        <ellipse cx="96" cy="66" rx="12" ry="6" transform="rotate(24 96 66)"/>
-        <ellipse cx="146" cy="122" rx="12" ry="6" transform="rotate(30 146 122)"/>
-        <ellipse cx="168" cy="192" rx="11" ry="6" transform="rotate(64 168 192)"/>
-      </g>
-    </svg>
-
-    <svg class="corner-art corner-art-right home-art hidden" width="270" height="240" viewBox="0 0 270 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g fill="none" stroke="#8fa377" stroke-width="3" stroke-linecap="round">
-        <path d="M 280 30 Q 200 70 168 130 Q 154 158 150 196" />
-        <path d="M 214 66 Q 196 90 196 116" />
-        <path d="M 236 96 Q 224 126 230 150" />
-      </g>
-      <g fill="#a9bc8f">
-        <ellipse cx="204" cy="98" rx="12" ry="6" transform="rotate(60 204 98)"/>
-        <ellipse cx="164" cy="152" rx="12" ry="6" transform="rotate(52 164 152)"/>
-        <ellipse cx="240" cy="128" rx="11" ry="6" transform="rotate(72 240 128)"/>
-      </g>
-      <g transform="translate(150 200)">
-        <g fill="#f0d9a0" stroke="#d8b96a" stroke-width="2">
-          <ellipse cx="0" cy="-22" rx="11" ry="17"/>
-          <ellipse cx="21" cy="-8" rx="11" ry="17" transform="rotate(72 21 -8)"/>
-          <ellipse cx="13" cy="18" rx="11" ry="17" transform="rotate(144 13 18)"/>
-          <ellipse cx="-13" cy="18" rx="11" ry="17" transform="rotate(-144 -13 18)"/>
-          <ellipse cx="-21" cy="-8" rx="11" ry="17" transform="rotate(-72 -21 -8)"/>
-        </g>
-        <circle r="10" fill="#ddb25c"/>
-        <circle r="4.5" fill="#b88230"/>
-      </g>
-      <g transform="translate(196 118) scale(0.78)">
-        <g fill="#f3e3c0" stroke="#d8b96a" stroke-width="2">
-          <ellipse cx="0" cy="-22" rx="11" ry="17"/>
-          <ellipse cx="21" cy="-8" rx="11" ry="17" transform="rotate(72 21 -8)"/>
-          <ellipse cx="13" cy="18" rx="11" ry="17" transform="rotate(144 13 18)"/>
-          <ellipse cx="-13" cy="18" rx="11" ry="17" transform="rotate(-144 -13 18)"/>
-          <ellipse cx="-21" cy="-8" rx="11" ry="17" transform="rotate(-72 -21 -8)"/>
-        </g>
-        <circle r="9" fill="#ddb25c"/>
-        <circle r="4" fill="#b88230"/>
-      </g>
-      <g transform="translate(232 152) scale(0.55)">
-        <g fill="#f0d9a0" stroke="#d8b96a" stroke-width="2.5">
-          <ellipse cx="0" cy="-20" rx="11" ry="16"/>
-          <ellipse cx="18" cy="8" rx="11" ry="16" transform="rotate(110 18 8)"/>
-          <ellipse cx="-18" cy="8" rx="11" ry="16" transform="rotate(-110 -18 8)"/>
-        </g>
-        <circle r="8" fill="#ddb25c"/>
-      </g>
-    </svg>
-
     <header class="header">
-      <h1>My Life-Wall</h1>
+      <h1>My Life Wall</h1>
       <p id="ownerName" class="owner-name"></p>
       <p id="ownerSubtitle" class="owner-subtitle hidden">a digital autobiography</p>
       <p>Every life has a story. This is mine.</p>
 
       <nav id="menuBar" class="menu-bar hidden" aria-label="Main menu">
         <button type="button" class="menu-item" data-page="home">Home Wall</button>
-        <button type="button" class="menu-item" data-page="pageForeword">Foreword</button>
         <button type="button" class="menu-item" data-page="pageWelcome">Welcome</button>
         <button type="button" class="menu-item" data-page="pageHowTo">How to use</button>
         <button type="button" class="menu-item" data-page="pageFeatures">Features</button>
@@ -100,9 +30,17 @@
       <p id="forewordStatus" class="foreword-status hidden">Saved.</p>
     </section>
 
+    <section id="pageAfterword" class="info-page hidden">
+      <h2>Afterword</h2>
+      <p class="foreword-hint">A closing word for your book — how you feel looking back, what you'd want a reader to take with them. It will appear as the final page of your Life Book.</p>
+      <textarea id="afterwordText" class="foreword-text" rows="12" placeholder="Write your afterword here..."></textarea>
+      <button id="saveAfterwordButton" class="keep-button">Keep afterword</button>
+      <p id="afterwordStatus" class="foreword-status hidden">Saved.</p>
+    </section>
+
     <section id="pageWelcome" class="info-page hidden">
-      <h2>Welcome to My Life-Wall</h2>
-      <p>My Life-Wall is a place to gather the story of a life, one year at a time. Each brick on the wall is a year. Some years hold many memories, some are still waiting for theirs.</p>
+      <h2>Welcome to My Life Wall</h2>
+      <p>My Life Wall is a place to gather the story of a life, one year at a time. Each brick on the wall is a year. Some years hold many memories, some are still waiting for theirs.</p>
       <p>There is no right order and no deadline. Start with the years you remember most vividly and let the rest follow.</p>
       <p><em>(Placeholder content — final wording to come.)</em></p>
     </section>
@@ -134,7 +72,11 @@
     </section>
 
     <div class="wall-stage">
+      <button type="button" id="forewordBrick" class="edge-brick home-art hidden">Foreword</button>
+
       <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
+
+      <button type="button" id="afterwordBrick" class="edge-brick home-art hidden">Afterword</button>
 
       <img class="corner-writer corner-writer-left home-art hidden"
            src="quill-writer-right.png" alt=""
