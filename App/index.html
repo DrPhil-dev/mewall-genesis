@@ -16,11 +16,25 @@
 
       <nav id="menuBar" class="menu-bar hidden" aria-label="Main menu">
         <button type="button" class="menu-item" data-page="home">Home Wall</button>
+        <button type="button" class="menu-item" data-page="pageNotes">Notes</button>
         <button type="button" class="menu-item" data-page="pageWelcome">Welcome</button>
         <button type="button" class="menu-item" data-page="pageHowTo">How to use</button>
         <button type="button" class="menu-item" data-page="pageFeatures">Features</button>
       </nav>
     </header>
+
+    <section id="pageNotes" class="info-page hidden">
+      <h2>Notes</h2>
+      <p class="foreword-hint">A place to jot down plans, ideas, and things still to do — saves itself as you type, so nothing gets lost on a scrap of paper next to the keyboard.</p>
+      <textarea id="notesText" class="foreword-text" rows="14" placeholder="Write your notes here..."></textarea>
+      <p id="notesStatus" class="foreword-status hidden">Saved.</p>
+    </section>
+
+    <section id="pageContents" class="info-page hidden">
+      <h2>Contents</h2>
+      <p class="foreword-hint">Every year with something recorded in it — click one to jump straight there.</p>
+      <div id="contentsList" class="contents-list"></div>
+    </section>
 
     <section id="pageForeword" class="info-page hidden">
       <h2>Foreword</h2>
@@ -72,6 +86,8 @@
     </section>
 
     <div class="wall-stage">
+      <button type="button" id="contentsBrick" class="edge-brick home-art hidden">Contents</button>
+
       <button type="button" id="forewordBrick" class="edge-brick home-art hidden">Foreword</button>
 
       <section id="wall" class="wall hidden" aria-label="Home Wall"></section>

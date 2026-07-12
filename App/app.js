@@ -364,6 +364,10 @@ const afterwordText = document.getElementById("afterwordText");
 const afterwordStatus = document.getElementById("afterwordStatus");
 const forewordBrick = document.getElementById("forewordBrick");
 const afterwordBrick = document.getElementById("afterwordBrick");
+const contentsBrick = document.getElementById("contentsBrick");
+const notesText = document.getElementById("notesText");
+const notesStatus = document.getElementById("notesStatus");
+const contentsList = document.getElementById("contentsList");
 const emptyYear = document.getElementById("emptyYear");
 
 const recordAudioButton = document.getElementById("recordAudioButton");
@@ -625,6 +629,55 @@ function showInfoPage(pageId) {
     afterwordText.value = settings.afterword || "";
     afterwordStatus.classList.add("hidden");
   }
+
+  if (pageId === "pageNotes") {
+    notesText.value = settings.notes || "";
+    notesStatus.classList.add("hidden");
+  }
+
+  if (pageId === "pageContents") {
+    renderContentsPage();
+  }
+}
+
+// The Contents page is generated live from whatever's actually been
+// written — not stored text of its own — so it's always up to date the
+// moment you open it.
+function renderContentsPage() {
+  contentsList.innerHTML = "";
+
+  const years = Object.keys(memories)
+    .filter(year => memories[year] && memories[year].length > 0)
+    .sort((a, b) => Number(a) - Number(b));
+
+  if (years.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "contents-empty";
+    empty.textContent = "Nothing recorded yet — once a year has a memory in it, it'll show up here.";
+    contentsList.appendChild(empty);
+    return;
+  }
+
+  years.forEach(year => {
+    const age = Number(year) - settings.birthYear;
+    const count = memories[year].length;
+
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "contents-item";
+
+    const label = document.createElement("span");
+    label.textContent = `${year} — Age ${age}`;
+    item.appendChild(label);
+
+    const meta = document.createElement("span");
+    meta.className = "contents-age";
+    meta.textContent = count === 1 ? "1 memory" : `${count} memories`;
+    item.appendChild(meta);
+
+    item.addEventListener("click", () => openYear(Number(year), age));
+    contentsList.appendChild(item);
+  });
 }
 
 function startMeWall() {
@@ -780,6 +833,7 @@ function openYear(year, age) {
   wall.classList.add("hidden");
   yearView.classList.remove("hidden");
   memoryEditor.classList.add("hidden");
+  hideInfoPages();
   setHomeArtVisible(false);
 
   yearTitle.textContent = `${year}`;
@@ -1344,6 +1398,18 @@ function createLifeBook() {
             page-break-before: always;
           }
 
+          .toc-list {
+            list-style: none;
+            margin: 24px 0 0;
+            padding: 0;
+          }
+
+          .toc-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #d8cbb8;
+            font-size: 16px;
+          }
+
           /* The reported printing artefact: every memory printed inside a
              bordered, tinted box. In print, memories are plain flowing
              text — like a book, not a form. */
@@ -1373,6 +1439,25 @@ function createLifeBook() {
         <p>Every life has a story. This is mine.</p>
       </section>
   `;
+
+  // A live table of contents — every year that actually has something
+  // recorded, in order, same as the Contents brick on the wall shows.
+  const writtenYears = years.filter(year => (memories[year] || []).length > 0);
+  if (writtenYears.length > 0) {
+    const contentsItems = writtenYears
+      .map(year => {
+        const age = Number(year) - birthYear;
+        return `<li>${year} — Age ${age}</li>`;
+      })
+      .join("\n");
+
+    bookHtml += `
+      <section class="foreword-chapter">
+        <h2>Contents</h2>
+        <ul class="toc-list">${contentsItems}</ul>
+      </section>
+  `;
+  }
 
   // The foreword, if one has been written, opens the book — its own page
   // straight after the title, like a real book.
@@ -1634,6 +1719,21 @@ document.getElementById("saveAfterwordButton").addEventListener("click", () => {
 // wall are the only way in, per the client's spec.
 forewordBrick.addEventListener("click", () => showInfoPage("pageForeword"));
 afterwordBrick.addEventListener("click", () => showInfoPage("pageAfterword"));
+contentsBrick.addEventListener("click", () => showInfoPage("pageContents"));
+
+// Notes is a running scratchpad, not a finished piece of writing like the
+// foreword — it saves itself a moment after you stop typing, rather than
+// waiting for a deliberate "Save" click.
+let notesSaveTimeout = null;
+notesText.addEventListener("input", () => {
+  clearTimeout(notesSaveTimeout);
+  notesSaveTimeout = setTimeout(() => {
+    settings.notes = notesText.value.trim();
+    saveSettings();
+    notesStatus.classList.remove("hidden");
+    setTimeout(() => notesStatus.classList.add("hidden"), 2000);
+  }, 600);
+});
 
 ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
