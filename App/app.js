@@ -11,6 +11,12 @@ import Link from "https://esm.sh/@tiptap/extension-link@2";
 const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
 
+// Tracks exactly which photo was last clicked in the editor, so the
+// Small/Medium/Large/Remove buttons can target it directly and reliably —
+// see the node view's pointerdown handler below, and setPhotoSize/
+// removePhoto further down.
+let lastSelectedImagePos = null;
+
 const CustomImage = Image.extend({
   // Native HTML5 drag-and-drop inside a contenteditable region is
   // notoriously inconsistent across browsers (this is what was causing the
@@ -264,6 +270,16 @@ const CustomImage = Image.extend({
           view.dispatch(tr);
           view.focus();
           ensureEditableEdges();
+
+          // The photo just moved (and ensureEditableEdges above may have
+          // shifted it again) — re-find it by its unique src so Small/
+          // Medium/Large keep targeting the right one afterward.
+          editor.state.doc.descendants((node, pos) => {
+            if (node.type.name === "image" && node.attrs.src === imageNode.attrs.src) {
+              lastSelectedImagePos = pos;
+              return false;
+            }
+          });
         } catch (error) {
           // If anything about the move fails unexpectedly, leave the photo
           // where it was rather than letting the error escape and risk
@@ -287,6 +303,15 @@ const CustomImage = Image.extend({
 
       wrapper.addEventListener("pointerdown", event => {
         if (event.target === handle || captionEl.contains(event.target)) return;
+
+        // Record exactly which photo this is, directly, the same reliable
+        // technique the resize handle already uses — so the Small/Medium/
+        // Large/Remove buttons can target this exact photo later without
+        // depending on the editor's selection still being correct by the
+        // time a toolbar button (outside the editor) gets clicked.
+        if (typeof getPos === "function") {
+          lastSelectedImagePos = getPos();
+        }
 
         moveStartX = event.clientX;
         moveStartY = event.clientY;
@@ -525,6 +550,13 @@ function setupFormatToolbar() {
     italicButton.classList.toggle("is-active", editor.isActive("italic"));
     strikeButton.classList.toggle("is-active", editor.isActive("strike"));
     linkButton.classList.toggle("is-active", editor.isActive("link"));
+
+    // The cursor moved somewhere that isn't a photo — forget which photo
+    // was last clicked, so Small/Medium/Large correctly ask for a fresh
+    // click rather than silently acting on an old one.
+    if (!editor.isActive("image")) {
+      lastSelectedImagePos = null;
+    }
   });
 }
 
@@ -858,6 +890,7 @@ function openYear(year, age) {
 function showEditor() {
   editingMemoryIndex = null;
   editor.commands.clearContent();
+  lastSelectedImagePos = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.remove("hidden");
   showEditorButton.classList.add("hidden");
@@ -928,6 +961,7 @@ function editMemory(index) {
 
   editingMemoryIndex = index;
   editor.commands.setContent(memory.html || `<p>${escapeHtml(memory.text || "")}</p>`);
+  lastSelectedImagePos = null;
   ensureEditableEdges();
   keepMemoryButton.textContent = "Update memory";
   memoryEditor.classList.remove("hidden");
@@ -1108,6 +1142,17 @@ function insertPhoto(file) {
         width: DEFAULT_PHOTO_WIDTH
       }).run();
       ensureEditableEdges();
+
+      // Make the just-inserted photo immediately usable with Small/
+      // Medium/Large without requiring a re-click. Found by its (unique)
+      // data URL rather than assuming a position, since the edge-guarantee
+      // above may have shifted everything by inserting a paragraph before it.
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === dataUrl) {
+          lastSelectedImagePos = pos;
+          return false;
+        }
+      });
     })
     .catch(error => {
       console.error("Could not add photo:", error);
@@ -1116,17 +1161,29 @@ function insertPhoto(file) {
 }
 
 function setPhotoSize(width) {
-  const success = editor.chain().focus().updateAttributes("image", {
+  const node = lastSelectedImagePos !== null ? editor.state.doc.nodeAt(lastSelectedImagePos) : null;
+
+  if (!node || node.type.name !== "image") {
+    alert("Click a photo first, then choose a size.");
+    return;
+  }
+
+  editor.chain().focus().setNodeSelection(lastSelectedImagePos).updateAttributes("image", {
     width
   }).run();
-
-  if (!success) {
-    alert("Click a photo first, then choose a size.");
-  }
 }
 
 function removePhoto() {
-  editor.chain().focus().deleteSelection().run();
+  const node = lastSelectedImagePos !== null ? editor.state.doc.nodeAt(lastSelectedImagePos) : null;
+
+  if (!node || node.type.name !== "image") {
+    alert("Click a photo first, then choose Remove photo.");
+    return;
+  }
+
+  const pos = lastSelectedImagePos;
+  editor.chain().focus().deleteRange({ from: pos, to: pos + node.nodeSize }).run();
+  lastSelectedImagePos = null;
 }
 
 async function startRecording() {
