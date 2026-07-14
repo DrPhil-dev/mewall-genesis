@@ -1,47 +1,12 @@
 // All TipTap pieces pinned to the same major version — unpinned imports
 // mean "latest", and a new TipTap major release can silently hand the
 // browser mismatched pieces that fail on editor construction.
-import { Editor, Extension } from "https://esm.sh/@tiptap/core@2";
+import { Editor } from "https://esm.sh/@tiptap/core@2";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2";
 import Image from "https://esm.sh/@tiptap/extension-image@2";
 import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2";
 import FontFamily from "https://esm.sh/@tiptap/extension-font-family@2";
 import Link from "https://esm.sh/@tiptap/extension-link@2";
-import TextAlign from "https://esm.sh/@tiptap/extension-text-align@2";
-
-// Font size isn't one of TipTap's own bundled extensions — this is a small
-// standard-pattern mark extension (the same technique @tiptap/extension-
-// font-family uses internally), adding a fontSize attribute to the shared
-// textStyle mark rather than needing a whole new package.
-const FontSize = Extension.create({
-  name: "fontSize",
-  addOptions() {
-    return { types: ["textStyle"] };
-  },
-  addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          fontSize: {
-            default: null,
-            parseHTML: element => element.style.fontSize || null,
-            renderHTML: attributes => {
-              if (!attributes.fontSize) return {};
-              return { style: `font-size: ${attributes.fontSize}` };
-            }
-          }
-        }
-      }
-    ];
-  },
-  addCommands() {
-    return {
-      setFontSize: fontSize => ({ chain }) => chain().setMark("textStyle", { fontSize }).run(),
-      unsetFontSize: () => ({ chain }) => chain().setMark("textStyle", { fontSize: null }).run()
-    };
-  }
-});
 
 const MIN_PHOTO_WIDTH_PERCENT = 15;
 const MAX_PHOTO_WIDTH_PERCENT = 100;
@@ -422,6 +387,9 @@ const forewordText = document.getElementById("forewordText");
 const forewordStatus = document.getElementById("forewordStatus");
 const afterwordText = document.getElementById("afterwordText");
 const afterwordStatus = document.getElementById("afterwordStatus");
+const forewordBrick = document.getElementById("forewordBrick");
+const afterwordBrick = document.getElementById("afterwordBrick");
+const contentsBrick = document.getElementById("contentsBrick");
 const notesText = document.getElementById("notesText");
 const notesStatus = document.getElementById("notesStatus");
 const contentsList = document.getElementById("contentsList");
@@ -457,10 +425,6 @@ function setupEditor() {
       CustomImage.configure({ allowBase64: true }),
       TextStyle,
       FontFamily,
-      FontSize,
-      TextAlign.configure({
-        types: ["heading", "paragraph"]
-      }),
       Link.configure({
         autolink: true,
         linkOnPaste: true,
@@ -524,15 +488,10 @@ function setupEditor() {
 function setupFormatToolbar() {
   const headingSelect = document.getElementById("headingSelect");
   const fontSelect = document.getElementById("fontSelect");
-  const sizeSelect = document.getElementById("sizeSelect");
   const boldButton = document.getElementById("boldButton");
   const italicButton = document.getElementById("italicButton");
   const strikeButton = document.getElementById("strikeButton");
   const linkButton = document.getElementById("linkButton");
-  const alignLeftButton = document.getElementById("alignLeftButton");
-  const alignCenterButton = document.getElementById("alignCenterButton");
-  const alignRightButton = document.getElementById("alignRightButton");
-  const alignJustifyButton = document.getElementById("alignJustifyButton");
 
   if (!headingSelect) return;
 
@@ -554,23 +513,9 @@ function setupFormatToolbar() {
     }
   });
 
-  sizeSelect.addEventListener("change", () => {
-    const value = sizeSelect.value;
-    if (value === "") {
-      editor.chain().focus().unsetFontSize().run();
-    } else {
-      editor.chain().focus().setFontSize(value).run();
-    }
-  });
-
   boldButton.addEventListener("click", () => editor.chain().focus().toggleBold().run());
   italicButton.addEventListener("click", () => editor.chain().focus().toggleItalic().run());
   strikeButton.addEventListener("click", () => editor.chain().focus().toggleStrike().run());
-
-  alignLeftButton.addEventListener("click", () => editor.chain().focus().setTextAlign("left").run());
-  alignCenterButton.addEventListener("click", () => editor.chain().focus().setTextAlign("center").run());
-  alignRightButton.addEventListener("click", () => editor.chain().focus().setTextAlign("right").run());
-  alignJustifyButton.addEventListener("click", () => editor.chain().focus().setTextAlign("justify").run());
 
   linkButton.addEventListener("click", () => {
     // Already a link — a second click removes it, same toggle pattern as
@@ -601,27 +546,17 @@ function setupFormatToolbar() {
     const currentFont = editor.getAttributes("textStyle").fontFamily || "";
     fontSelect.value = currentFont;
 
-    const currentSize = editor.getAttributes("textStyle").fontSize || "";
-    sizeSelect.value = currentSize;
-
     boldButton.classList.toggle("is-active", editor.isActive("bold"));
     italicButton.classList.toggle("is-active", editor.isActive("italic"));
     strikeButton.classList.toggle("is-active", editor.isActive("strike"));
     linkButton.classList.toggle("is-active", editor.isActive("link"));
 
-    alignLeftButton.classList.toggle("is-active", editor.isActive({ textAlign: "left" }));
-    alignCenterButton.classList.toggle("is-active", editor.isActive({ textAlign: "center" }));
-    alignRightButton.classList.toggle("is-active", editor.isActive({ textAlign: "right" }));
-    alignJustifyButton.classList.toggle("is-active", editor.isActive({ textAlign: "justify" }));
-
-    // Deliberately NOT clearing lastSelectedImagePos here based on the
-    // editor's own selection state. It's set directly by the photo's own
-    // pointerdown handler, which is the reliable part — ProseMirror's own
-    // click-to-select doesn't always land cleanly as a NodeSelection on
-    // the image (this was the actual bug: clearing on that ever *not*
-    // being true wiped out a perfectly good tracked position). The only
-    // time this needs resetting is switching to a different memory
-    // entirely, which showEditor()/editMemory() already handle directly.
+    // The cursor moved somewhere that isn't a photo — forget which photo
+    // was last clicked, so Small/Medium/Large correctly ask for a fresh
+    // click rather than silently acting on an old one.
+    if (!editor.isActive("image")) {
+      lastSelectedImagePos = null;
+    }
   });
 }
 
@@ -666,6 +601,11 @@ function showWall() {
   createWall();
   setHomeArtVisible(true);
   updateScrollJumpVisibility();
+
+  // The bricks glow gold once something's actually been written, same
+  // visual language as a year brick with a memory in it.
+  forewordBrick.classList.toggle("has-content", Boolean(settings.foreword && settings.foreword.trim()));
+  afterwordBrick.classList.toggle("has-content", Boolean(settings.afterword && settings.afterword.trim()));
 }
 
 // The name lives in one place — settings — and everything (the header,
@@ -862,9 +802,6 @@ function createWall() {
   const futureHorizon = birthYear + 99;
   const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
-  wall.appendChild(createEdgeBrickRow("forewordBrick", "Foreword", "pageForeword", settings.foreword));
-  wall.appendChild(createBoundaryRow());
-
   let year = birthYear;
   let rowIndex = 0;
 
@@ -889,47 +826,6 @@ function createWall() {
     wall.appendChild(row);
     rowIndex++;
   }
-
-  wall.appendChild(createBoundaryRow());
-  wall.appendChild(createEdgeBrickRow("afterwordBrick", "Afterword", "pageAfterword", settings.afterword));
-}
-
-// Foreword/Afterword now live inside the wall's own frame, as a small
-// (roughly 3.5-brick-wide) centred brick occupying a full row to itself —
-// not a separate element floating outside the wall. Rebuilt fresh every
-// time createWall() runs, so the glow always reflects current settings
-// without needing to be updated separately elsewhere.
-function createEdgeBrickRow(id, label, pageId, content) {
-  const row = document.createElement("div");
-  row.className = "brick-row edge-brick-row";
-
-  const brick = document.createElement("button");
-  brick.type = "button";
-  brick.id = id;
-  brick.className = "edge-brick";
-  if (content && content.trim()) brick.classList.add("has-content");
-  brick.textContent = label;
-  brick.addEventListener("click", () => showInfoPage(pageId));
-
-  row.appendChild(brick);
-  return row;
-}
-
-// The blank boundary bricks — purely decorative, a small real cluster of
-// brick-shaped elements inside the frame rather than a CSS texture layered
-// on top of it.
-function createBoundaryRow() {
-  const row = document.createElement("div");
-  row.className = "brick-row boundary-row";
-
-  for (let i = 0; i < 4; i++) {
-    const filler = document.createElement("div");
-    filler.className = "brick boundary-filler";
-    filler.setAttribute("aria-hidden", "true");
-    row.appendChild(filler);
-  }
-
-  return row;
 }
 
 // Rebuild the wall if the window is resized while it's visible, so the
@@ -1563,15 +1459,12 @@ function createLifeBook() {
             list-style: none;
             margin: 24px 0 0;
             padding: 0;
-            column-count: 2;
-            column-gap: 28px;
           }
 
           .toc-list li {
             padding: 10px 0;
             border-bottom: 1px solid #d8cbb8;
             font-size: 16px;
-            break-inside: avoid;
           }
 
           /* The reported printing artefact: every memory printed inside a
@@ -1862,14 +1755,13 @@ showEditorButton.addEventListener("click", showEditor);
 document.getElementById("changeNameButton").addEventListener("click", changeName);
 
 // The foreword lives in settings, so it's automatically included in
-// export/import backups alongside the name and birth date. Its brick
-// glow updates itself next time the wall renders — no need to touch it
-// here, since the brick is rebuilt fresh every time anyway.
+// export/import backups alongside the name and birth date.
 document.getElementById("saveForewordButton").addEventListener("click", () => {
   settings.foreword = forewordText.value.trim();
   saveSettings();
   forewordStatus.classList.remove("hidden");
   setTimeout(() => forewordStatus.classList.add("hidden"), 2500);
+  forewordBrick.classList.toggle("has-content", Boolean(settings.foreword));
 });
 
 document.getElementById("saveAfterwordButton").addEventListener("click", () => {
@@ -1877,7 +1769,14 @@ document.getElementById("saveAfterwordButton").addEventListener("click", () => {
   saveSettings();
   afterwordStatus.classList.remove("hidden");
   setTimeout(() => afterwordStatus.classList.add("hidden"), 2500);
+  afterwordBrick.classList.toggle("has-content", Boolean(settings.afterword));
 });
+
+// Foreword and Afterword have no menu entry — the long bricks framing the
+// wall are the only way in, per the client's spec.
+forewordBrick.addEventListener("click", () => showInfoPage("pageForeword"));
+afterwordBrick.addEventListener("click", () => showInfoPage("pageAfterword"));
+contentsBrick.addEventListener("click", () => showInfoPage("pageContents"));
 
 // Notes is a running scratchpad, not a finished piece of writing like the
 // foreword — it saves itself a moment after you stop typing, rather than

@@ -47,7 +47,7 @@ body {
 
 .corner-writer {
   position: absolute;
-  bottom: 24px;
+  bottom: 10px;
   z-index: 1;
   pointer-events: none;
   width: 165px;
@@ -55,40 +55,31 @@ body {
 }
 
 .corner-writer-left {
-  left: 24px;
+  left: 14px;
 }
 
 .corner-writer-right {
-  right: 24px;
+  right: 14px;
 }
 
 @media (max-width: 900px) {
   .corner-writer {
-    width: 90px;
-    bottom: 12px;
+    width: 98px;
+    bottom: 4px;
   }
 
   .corner-writer-left {
-    left: 12px;
+    left: 4px;
   }
 
   .corner-writer-right {
-    right: 12px;
+    right: 4px;
   }
 }
 
 @media (max-width: 500px) {
   .corner-writer {
-    width: 60px;
-    bottom: 8px;
-  }
-
-  .corner-writer-left {
-    left: 8px;
-  }
-
-  .corner-writer-right {
-    right: 8px;
+    width: 66px;
   }
 }
 
@@ -142,7 +133,7 @@ body {
   width: min(100%, 1260px);
   max-width: 1260px;
   margin: 0 auto;
-  padding: 42px 40px;
+  padding: 42px 64px;
   background:
     radial-gradient(circle at 30% 0%, rgba(255, 255, 250, 0.80), transparent 42%),
     linear-gradient(180deg, #f2efe4, var(--mortar));
@@ -156,16 +147,39 @@ body {
   position: relative;
 }
 
-/* Foreword/Afterword — small bricks (~3.5 normal brick-widths) living
-   inside the wall's own frame now, each in its own centred row with empty
-   space either side, rather than a separate full-width bar outside it. */
-.edge-brick-row {
-  margin-bottom: 14px;
+/* Blank boundary bricks — a purely decorative framing column down each
+   inner edge of the wall. Not real bricks in the data sense (they don't
+   participate in the responsive brick-count layout at all), just a
+   repeating pattern sized to look like a stack of blank bricks. */
+.wall::before,
+.wall::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--stone-light) 0px,
+    var(--stone-light) 66px,
+    var(--mortar) 66px,
+    var(--mortar) 76px
+  );
+  opacity: 0.55;
 }
 
+.wall::before { left: 0; }
+.wall::after { right: 0; }
+
+/* Long narrow bricks that open the Foreword/Afterword pages — the only
+   way into either, per the client's spec. Styled like a stretched brick
+   rather than an ordinary button. */
 .edge-brick {
   display: block;
-  width: calc(var(--brick-width, 104px) * 3.5 + 25px);
+  width: min(100%, 1260px);
+  max-width: 1260px;
+  margin: 0 auto 14px;
   padding: 14px 0;
   border-radius: 10px;
   border: 1px solid rgba(140, 132, 110, 0.75);
@@ -179,6 +193,10 @@ body {
   cursor: pointer;
 }
 
+#afterwordBrick {
+  margin: 14px auto 0;
+}
+
 .edge-brick.has-content {
   background:
     radial-gradient(circle at 42% 22%, rgba(255, 238, 184, 0.70), transparent 52%),
@@ -188,22 +206,6 @@ body {
 
 .edge-brick:hover {
   filter: brightness(1.03);
-}
-
-/* Blank boundary bricks — a small real cluster of brick-shaped elements
-   inside the frame (not a CSS texture layered on top of it), sitting just
-   below the Foreword row and just above the Afterword row. */
-.boundary-row {
-  margin-bottom: 14px;
-  opacity: 0.6;
-}
-
-.boundary-filler {
-  cursor: default;
-  pointer-events: none;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.20), transparent 35%),
-    linear-gradient(145deg, var(--stone-light), var(--mortar));
 }
 
 .brick-row {
@@ -856,8 +858,9 @@ body {
 }
 
 .contents-list {
-  column-count: 2;
-  column-gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .contents-item {
@@ -865,8 +868,6 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  break-inside: avoid;
-  margin-bottom: 10px;
   padding: 14px 18px;
   border: 1px solid #d8cbb8;
   border-radius: 12px;
@@ -904,13 +905,6 @@ body {
   border: 1px solid #d8cbb8;
   border-radius: 14px;
   background: var(--panel);
-}
-
-.format-divider {
-  width: 1px;
-  height: 22px;
-  background: #d8cbb8;
-  margin: 0 2px;
 }
 
 .format-select {
@@ -1027,7 +1021,8 @@ body {
     border-radius: 16px;
   }
 
-  .boundary-row {
+  .wall::before,
+  .wall::after {
     display: none;
   }
 
