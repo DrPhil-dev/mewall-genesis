@@ -863,7 +863,6 @@ function createWall() {
   const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
   wall.appendChild(createEdgeBrickRow("forewordBrick", "Foreword", "pageForeword", settings.foreword));
-  wall.appendChild(createBoundaryRow());
 
   let year = birthYear;
   let rowIndex = 0;
@@ -890,7 +889,6 @@ function createWall() {
     rowIndex++;
   }
 
-  wall.appendChild(createBoundaryRow());
   wall.appendChild(createEdgeBrickRow("afterwordBrick", "Afterword", "pageAfterword", settings.afterword));
 }
 
@@ -912,23 +910,6 @@ function createEdgeBrickRow(id, label, pageId, content) {
   brick.addEventListener("click", () => showInfoPage(pageId));
 
   row.appendChild(brick);
-  return row;
-}
-
-// The blank boundary bricks — purely decorative, a small real cluster of
-// brick-shaped elements inside the frame rather than a CSS texture layered
-// on top of it.
-function createBoundaryRow() {
-  const row = document.createElement("div");
-  row.className = "brick-row boundary-row";
-
-  for (let i = 0; i < 4; i++) {
-    const filler = document.createElement("div");
-    filler.className = "brick boundary-filler";
-    filler.setAttribute("aria-hidden", "true");
-    row.appendChild(filler);
-  }
-
   return row;
 }
 

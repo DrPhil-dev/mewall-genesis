@@ -190,22 +190,6 @@ body {
   filter: brightness(1.03);
 }
 
-/* Blank boundary bricks — a small real cluster of brick-shaped elements
-   inside the frame (not a CSS texture layered on top of it), sitting just
-   below the Foreword row and just above the Afterword row. */
-.boundary-row {
-  margin-bottom: 14px;
-  opacity: 0.6;
-}
-
-.boundary-filler {
-  cursor: default;
-  pointer-events: none;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.20), transparent 35%),
-    linear-gradient(145deg, var(--stone-light), var(--mortar));
-}
-
 .brick-row {
   display: flex;
   justify-content: center;
@@ -1025,10 +1009,6 @@ body {
   .wall {
     padding: 20px 10px;
     border-radius: 16px;
-  }
-
-  .boundary-row {
-    display: none;
   }
 
   .edge-brick {
