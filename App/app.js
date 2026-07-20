@@ -403,6 +403,11 @@ const nameInput = document.getElementById("nameInput");
 const birthDateInput = document.getElementById("birthDateInput");
 const ownerName = document.getElementById("ownerName");
 const ownerSubtitle = document.getElementById("ownerSubtitle");
+const ownerPhotoButton = document.getElementById("ownerPhotoButton");
+const ownerPhotoImg = document.getElementById("ownerPhotoImg");
+const ownerPhotoPlaceholder = document.getElementById("ownerPhotoPlaceholder");
+const ownerPhotoInput = document.getElementById("ownerPhotoInput");
+const ownerPhotoRemove = document.getElementById("ownerPhotoRemove");
 const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
@@ -683,6 +688,51 @@ function updateOwnerHeader() {
     ownerSubtitle.classList.add("hidden");
   }
   ownerName.title = "Click to change the name on this Life Wall";
+  updateOwnerPhoto();
+}
+
+const AVATAR_MAX_DIMENSION = 480;
+
+function updateOwnerPhoto() {
+  if (settings.ownerPhoto) {
+    ownerPhotoImg.src = settings.ownerPhoto;
+    ownerPhotoImg.classList.remove("hidden");
+    ownerPhotoPlaceholder.classList.add("hidden");
+    ownerPhotoButton.classList.add("has-photo");
+    ownerPhotoButton.title = "Click to change this photo";
+    ownerPhotoRemove.classList.remove("hidden");
+  } else {
+    ownerPhotoImg.classList.add("hidden");
+    ownerPhotoImg.removeAttribute("src");
+    ownerPhotoPlaceholder.classList.remove("hidden");
+    ownerPhotoButton.classList.remove("has-photo");
+    ownerPhotoButton.title = "Click to add a photo";
+    ownerPhotoRemove.classList.add("hidden");
+  }
+}
+
+function setOwnerPhoto(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+
+  // A small avatar never needs to be as large as a memory photo — a
+  // smaller max dimension keeps it light without any visible loss at the
+  // size it's actually displayed.
+  compressImageFile(file, AVATAR_MAX_DIMENSION)
+    .then(dataUrl => {
+      settings.ownerPhoto = dataUrl;
+      saveSettings();
+      updateOwnerPhoto();
+    })
+    .catch(error => {
+      console.error("Could not add photo:", error);
+      alert("That photo couldn't be added. Please try a different one.");
+    });
+}
+
+function removeOwnerPhoto() {
+  settings.ownerPhoto = null;
+  saveSettings();
+  updateOwnerPhoto();
 }
 
 function changeName() {
@@ -738,36 +788,36 @@ function showInfoPage(pageId) {
 function renderContentsPage() {
   contentsList.innerHTML = "";
 
-  const years = Object.keys(memories)
-    .filter(year => memories[year] && memories[year].length > 0)
+  const chapterNums = Object.keys(memories)
+    .filter(num => memories[num] && memories[num].length > 0)
     .sort((a, b) => Number(a) - Number(b));
 
-  if (years.length === 0) {
+  if (chapterNums.length === 0) {
     const empty = document.createElement("p");
     empty.className = "contents-empty";
-    empty.textContent = "Nothing recorded yet — once a year has a memory in it, it'll show up here.";
+    empty.textContent = "Nothing recorded yet — once a chapter has an entry in it, it'll show up here.";
     contentsList.appendChild(empty);
     return;
   }
 
-  years.forEach(year => {
-    const age = Number(year) - settings.birthYear;
-    const count = memories[year].length;
+  chapterNums.forEach(numStr => {
+    const chapterNum = Number(numStr);
+    const count = memories[numStr].length;
 
     const item = document.createElement("button");
     item.type = "button";
     item.className = "contents-item";
 
     const label = document.createElement("span");
-    label.textContent = `${year} — Age ${age}`;
+    label.textContent = `Chapter ${chapterNum} — ${getChapterTitle(chapterNum)}`;
     item.appendChild(label);
 
     const meta = document.createElement("span");
     meta.className = "contents-age";
-    meta.textContent = count === 1 ? "1 memory" : `${count} memories`;
+    meta.textContent = count === 1 ? "1 entry" : `${count} entries`;
     item.appendChild(meta);
 
-    item.addEventListener("click", () => openYear(Number(year), age));
+    item.addEventListener("click", () => openChapter(chapterNum));
     contentsList.appendChild(item);
   });
 }
@@ -855,19 +905,19 @@ function getWallLayout() {
   return { bricksPerRow, staggerBricksPerRow, staggerOffset };
 }
 
+const TOTAL_CHAPTERS = 100;
+
 function createWall() {
   wall.innerHTML = "";
 
-  const birthYear = settings.birthYear;
-  const futureHorizon = birthYear + 99;
   const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
   wall.appendChild(createEdgeBrickRow("forewordBrick", "Foreword", "pageForeword", settings.foreword));
 
-  let year = birthYear;
+  let chapterNum = 1;
   let rowIndex = 0;
 
-  while (year <= futureHorizon) {
+  while (chapterNum <= TOTAL_CHAPTERS) {
     const isOffsetRow = rowIndex % 2 === 1;
     const rowSize = isOffsetRow ? staggerBricksPerRow : bricksPerRow;
 
@@ -879,10 +929,9 @@ function createWall() {
       row.style.paddingRight = `${staggerOffset}px`;
     }
 
-    for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
-      const age = year - birthYear;
-      row.appendChild(createBrick(year, age));
-      year++;
+    for (let i = 0; i < rowSize && chapterNum <= TOTAL_CHAPTERS; i++) {
+      row.appendChild(createBrick(chapterNum));
+      chapterNum++;
     }
 
     wall.appendChild(row);
@@ -922,29 +971,74 @@ window.addEventListener("resize", () => {
   wallResizeTimeout = setTimeout(createWall, 150);
 });
 
-function createBrick(year, age) {
+function getChapterTitle(chapterNum) {
+  const custom = settings.chapterTitles && settings.chapterTitles[chapterNum];
+  return custom && custom.trim() ? custom.trim() : `Chapter ${chapterNum}`;
+}
+
+function renameChapter(chapterNum) {
+  const existing = settings.chapterTitles && settings.chapterTitles[chapterNum];
+  const entered = prompt(`Title for Chapter ${chapterNum}:`, existing || "");
+  if (entered === null) return; // cancelled
+
+  if (!settings.chapterTitles) settings.chapterTitles = {};
+  settings.chapterTitles[chapterNum] = entered.trim();
+  saveSettings();
+  createWall();
+}
+
+// Chapters have no automatic "today" the way years did — this is a manual
+// bookmark instead: click the star to mark whichever chapter you're
+// currently working on, click it again to clear it. Only one at a time.
+function toggleCurrentChapter(chapterNum) {
+  settings.currentChapterId = settings.currentChapterId === chapterNum ? null : chapterNum;
+  saveSettings();
+  createWall();
+}
+
+function createBrick(chapterNum) {
   const brick = document.createElement("button");
   brick.className = "brick";
-  brick.setAttribute("aria-label", `${year}, age ${age}`);
 
-  if (year === currentYear) brick.classList.add("current");
-  if (year > currentYear) brick.classList.add("future");
-  if (memories[year] && memories[year].length > 0) {
+  const title = getChapterTitle(chapterNum);
+  brick.setAttribute("aria-label", `Chapter ${chapterNum}: ${title}`);
+
+  if (settings.currentChapterId === chapterNum) brick.classList.add("current");
+  if (memories[chapterNum] && memories[chapterNum].length > 0) {
     brick.classList.add("has-memories");
   }
 
   brick.innerHTML = `
-    <span class="year">${year}</span>
-    <span class="age">Age ${age}</span>
+    <span class="year">${escapeHtml(title)}</span>
+    <span class="age">Chapter ${chapterNum}</span>
+    <span class="brick-tools">
+      <span class="brick-tool brick-rename" title="Rename this chapter">✎</span>
+      <span class="brick-tool brick-mark-current" title="Mark as the chapter I'm currently working on">★</span>
+    </span>
+    <span class="brick-title-tooltip" role="tooltip">${escapeHtml(title)}</span>
   `;
 
-  brick.addEventListener("click", () => openYear(year, age));
+  brick.addEventListener("click", event => {
+    if (event.target.closest(".brick-rename")) {
+      event.stopPropagation();
+      renameChapter(chapterNum);
+      return;
+    }
+
+    if (event.target.closest(".brick-mark-current")) {
+      event.stopPropagation();
+      toggleCurrentChapter(chapterNum);
+      return;
+    }
+
+    openChapter(chapterNum);
+  });
 
   return brick;
 }
 
-function openYear(year, age) {
-  selectedYear = year;
+function openChapter(chapterNum) {
+  selectedYear = chapterNum;
   editingMemoryIndex = null;
 
   wall.classList.add("hidden");
@@ -953,8 +1047,8 @@ function openYear(year, age) {
   hideInfoPages();
   setHomeArtVisible(false);
 
-  yearTitle.textContent = `${year}`;
-  yearAge.textContent = `Age ${age}`;
+  yearTitle.textContent = `Chapter ${chapterNum}`;
+  yearAge.textContent = getChapterTitle(chapterNum);
 
   editor.commands.clearContent();
   keepMemoryButton.textContent = "Keep memory";
@@ -963,11 +1057,11 @@ function openYear(year, age) {
 
   updateScrollJumpVisibility();
 
-  // If nothing has been remembered from this year yet, skip the empty-state
+  // If nothing has been recorded in this chapter yet, skip the empty-state
   // messaging and go straight to the entry field — no point making people
   // click through "Record your first memory" to reach an obvious next step.
-  const yearMemories = memories[selectedYear] || [];
-  if (yearMemories.length === 0) {
+  const chapterMemories = memories[selectedYear] || [];
+  if (chapterMemories.length === 0) {
     showEditor();
   }
 }
@@ -1056,7 +1150,7 @@ function editMemory(index) {
 }
 
 async function deleteMemory(index) {
-  const confirmed = confirm("Remove this memory from this year?");
+  const confirmed = confirm("Remove this memory from this chapter?");
   if (!confirmed) return;
 
   memories[selectedYear].splice(index, 1);
@@ -1138,7 +1232,7 @@ const PHOTO_JPEG_QUALITY = 0.82;
 // of that gets stored as base64 text in localStorage (which has a hard
 // 5–10MB-ish ceiling set by the browser). Shrinking to a sensible display
 // size and re-encoding as JPEG massively cuts that down before it's saved.
-function compressImageFile(file) {
+function compressImageFile(file, maxDimension = MAX_PHOTO_DIMENSION) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -1152,13 +1246,13 @@ function compressImageFile(file) {
       img.onload = () => {
         let { width, height } = img;
 
-        if (width > MAX_PHOTO_DIMENSION || height > MAX_PHOTO_DIMENSION) {
+        if (width > maxDimension || height > maxDimension) {
           if (width >= height) {
-            height = Math.round((height / width) * MAX_PHOTO_DIMENSION);
-            width = MAX_PHOTO_DIMENSION;
+            height = Math.round((height / width) * maxDimension);
+            width = maxDimension;
           } else {
-            width = Math.round((width / height) * MAX_PHOTO_DIMENSION);
-            height = MAX_PHOTO_DIMENSION;
+            width = Math.round((width / height) * maxDimension);
+            height = maxDimension;
           }
         }
 
@@ -1402,7 +1496,6 @@ function importLife(event) {
 }
 
 function createLifeBook() {
-  const birthYear = settings.birthYear;
   const years = Object.keys(memories).sort((a, b) => Number(a) - Number(b));
   const owner = settings.name || "My Life";
 
@@ -1585,15 +1678,12 @@ function createLifeBook() {
       </section>
   `;
 
-  // A live table of contents — every year that actually has something
-  // recorded, in order, same as the Contents brick on the wall shows.
-  const writtenYears = years.filter(year => (memories[year] || []).length > 0);
-  if (writtenYears.length > 0) {
-    const contentsItems = writtenYears
-      .map(year => {
-        const age = Number(year) - birthYear;
-        return `<li>${year} — Age ${age}</li>`;
-      })
+  // A live table of contents — every chapter that actually has something
+  // recorded, in order, same as the Contents page shows.
+  const writtenChapters = years.filter(num => (memories[num] || []).length > 0);
+  if (writtenChapters.length > 0) {
+    const contentsItems = writtenChapters
+      .map(num => `<li>Chapter ${num} — ${escapeHtml(getChapterTitle(Number(num)))}</li>`)
       .join("\n");
 
     bookHtml += `
@@ -1621,16 +1711,16 @@ function createLifeBook() {
   `;
   }
 
-  years.forEach((year) => {
-    const age = Number(year) - birthYear;
-    const yearMemories = memories[year] || [];
+  years.forEach((chapterNumStr) => {
+    const chapterNum = Number(chapterNumStr);
+    const chapterMemories = memories[chapterNumStr] || [];
 
     bookHtml += `
       <section class="year-chapter">
-        <h2>${year} - Age ${age}</h2>
+        <h2>Chapter ${chapterNum} &mdash; ${escapeHtml(getChapterTitle(chapterNum))}</h2>
     `;
 
-    yearMemories.forEach((memory) => {
+    chapterMemories.forEach((memory) => {
       const content = memory.html || `<p>${escapeHtml(memory.text || "")}</p>`;
       bookHtml += `
         <article class="memory">
@@ -1878,6 +1968,22 @@ ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
   // field is right there anyway.
   if (settings.birthYear) changeName();
+});
+
+ownerPhotoButton.addEventListener("click", () => ownerPhotoInput.click());
+
+ownerPhotoImg.addEventListener("click", () => ownerPhotoInput.click());
+
+ownerPhotoInput.addEventListener("change", event => {
+  const file = event.target.files[0];
+  setOwnerPhoto(file);
+  ownerPhotoInput.value = "";
+});
+
+ownerPhotoRemove.addEventListener("click", event => {
+  event.stopPropagation();
+  const confirmed = confirm("Remove this photo?");
+  if (confirmed) removeOwnerPhoto();
 });
 
 // Jump-to-top / jump-to-bottom buttons for long story pages. Wired

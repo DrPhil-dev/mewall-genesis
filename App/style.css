@@ -130,6 +130,129 @@ body {
   padding-bottom: 2px;
 }
 
+/* The photo sits to the LEFT of the name only — deliberately not centred
+   as its own element, so the row as a whole (photo + name) centres on the
+   page, and the name itself ends up a little right of true centre. That
+   asymmetry was explicitly signed off on rather than an oversight. */
+.owner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.owner-text {
+  text-align: left;
+}
+
+.owner-text .owner-name {
+  margin-top: 0;
+}
+
+.owner-photo-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+
+.owner-photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--stone-dark);
+  box-shadow: 0 4px 14px rgba(70, 55, 35, 0.18);
+  cursor: pointer;
+  display: block;
+}
+
+.owner-photo-button {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 2px dashed var(--stone-dark);
+  background: var(--panel);
+  color: var(--soft-text);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.owner-photo-button:hover {
+  background: var(--stone-light);
+}
+
+/* Once a real photo is set, the button shrinks to a small pencil-style
+   overlay in the corner (its placeholder "+" hides itself) — clicking it
+   still reopens the file picker to change the photo. The separate ×
+   button appears alongside it to remove the photo entirely. */
+.owner-photo-button.has-photo {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  top: auto;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  border: 2px solid var(--panel);
+  background: var(--stone);
+}
+
+.owner-photo-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  background: #d8746a;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.owner-photo-remove:hover {
+  background: #c65f55;
+}
+
+@media (max-width: 640px) {
+  .owner-row {
+    gap: 12px;
+  }
+
+  .owner-photo-wrap,
+  .owner-photo,
+  .owner-photo-button {
+    width: 56px;
+    height: 56px;
+  }
+
+  .owner-photo-button.has-photo {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .owner-photo-remove {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+  }
+}
+
 .header p.owner-subtitle {
   margin: 2px 0 0;
   font-size: 17px;
@@ -275,6 +398,9 @@ body {
 .brick .year {
   display: block;
   font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brick .age {
@@ -282,6 +408,99 @@ body {
   margin-top: 6px;
   font-size: 13px;
   color: rgba(55, 47, 40, 0.72);
+}
+
+/* Rename and mark-current controls — quiet by default, since the brick's
+   own title/number already carries the important information, but always
+   reachable without opening the chapter (per the client's preference for
+   these controls living "on the outside"). */
+.brick-tools {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0.35;
+  transition: opacity 150ms ease;
+}
+
+.brick:hover .brick-tools,
+.brick:focus-visible .brick-tools {
+  opacity: 1;
+}
+
+.brick-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.brick-tool:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.08);
+}
+
+.brick-mark-current {
+  color: var(--sage-deep, #56643f);
+}
+
+.brick.current .brick-mark-current {
+  color: #c9a227;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* Chapter titles can run much longer than a 4-digit year ever could, so
+   they get ellipsis-truncated on the brick face — this pop-out is what
+   lets the full title actually be read, at readable size, regardless of
+   length. Shrinking the font instead would only buy a few more
+   characters before the same problem reappears. */
+.brick-title-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(6px);
+  width: max-content;
+  min-width: 120%;
+  max-width: 240px;
+  background: var(--panel, #fffdf8);
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #d8cbb8;
+  box-shadow: 0 10px 26px rgba(60, 45, 20, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+  white-space: normal;
+  text-align: center;
+  z-index: 6;
+}
+
+.brick-title-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--panel, #fffdf8);
+}
+
+.brick:hover .brick-title-tooltip,
+.brick:focus-visible .brick-title-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .brick.current {
