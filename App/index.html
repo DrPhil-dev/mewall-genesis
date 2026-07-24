@@ -9,15 +9,16 @@
 <body>
   <main class="app">
     <header class="header">
-      <h1>My Life Wall</h1>
+      <h1><span id="titleText">My Life Wall</span></h1>
+
+      <div class="owner-photo-wrap">
+        <img id="ownerPhotoImg" class="owner-photo hidden" src="" alt="">
+        <button type="button" id="ownerPhotoButton" class="owner-photo-button" title="Click to add a photo"><span id="ownerPhotoPlaceholder">+</span></button>
+        <input type="file" id="ownerPhotoInput" accept="image/*" hidden>
+        <button type="button" id="ownerPhotoRemove" class="owner-photo-remove hidden" title="Remove this photo">&times;</button>
+      </div>
 
       <div class="owner-row">
-        <div class="owner-photo-wrap">
-          <img id="ownerPhotoImg" class="owner-photo hidden" src="" alt="">
-          <button type="button" id="ownerPhotoButton" class="owner-photo-button" title="Click to add a photo"><span id="ownerPhotoPlaceholder">+</span></button>
-          <input type="file" id="ownerPhotoInput" accept="image/*" hidden>
-          <button type="button" id="ownerPhotoRemove" class="owner-photo-remove hidden" title="Remove this photo">&times;</button>
-        </div>
         <div class="owner-text">
           <p id="ownerName" class="owner-name"></p>
           <p id="ownerSubtitle" class="owner-subtitle hidden">a digital autobiography</p>
