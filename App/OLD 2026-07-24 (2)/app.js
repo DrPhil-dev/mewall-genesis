@@ -688,7 +688,7 @@ function showWall() {
 function positionOwnerPhoto() {
   if (!menuBar || menuBar.classList.contains("hidden")) return;
 
-  const h1 = document.getElementById("titleText");
+  const h1 = document.querySelector(".header h1");
   const homeButton = document.querySelector('.menu-item[data-page="home"]');
   if (!h1 || !homeButton || !ownerName || !ownerPhotoWrap) return;
 

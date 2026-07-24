@@ -1,0 +1,1153 @@
+:root {
+  --background: #f6f4ee;
+  --panel: #fffefb;
+  --stone: #cfc7b6;
+  --stone-light: #e9e3d5;
+  --stone-dark: #b0a68f;
+  --cream-light: #f6e2aa;
+  --gold-light: #ddb25c;
+  --future: #eeebe1;
+  --text: #3a352d;
+  --soft-text: #746c5c;
+  --mortar: #e3ddcd;
+  --current-light: #d9e2c8;
+  --current: #8fa377;
+  --current-border: #6c7d54;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background: var(--background);
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  padding: 48px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+}
+
+.wall-stage {
+  position: relative;
+  width: min(100%, 1260px);
+  max-width: 1260px;
+  margin: 0 auto;
+}
+
+.corner-writer {
+  position: absolute;
+  bottom: 24px;
+  z-index: 1;
+  pointer-events: none;
+  width: 165px;
+  height: auto;
+}
+
+.corner-writer-left {
+  left: 24px;
+}
+
+.corner-writer-right {
+  right: 24px;
+}
+
+@media (max-width: 900px) {
+  .corner-writer {
+    width: 90px;
+    bottom: 12px;
+  }
+
+  .corner-writer-left {
+    left: 12px;
+  }
+
+  .corner-writer-right {
+    right: 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .corner-writer {
+    width: 60px;
+    bottom: 8px;
+  }
+
+  .corner-writer-left {
+    left: 8px;
+  }
+
+  .corner-writer-right {
+    right: 8px;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 500;
+}
+
+.header p {
+  margin-top: 12px;
+  font-size: 20px;
+  color: var(--soft-text);
+}
+
+.header p.owner-name {
+  margin: 10px 0 0;
+  font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting",
+    "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 64px;
+  font-weight: bold;
+  line-height: 1.15;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.header p.owner-name.owner-name-placeholder {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-style: italic;
+  color: var(--soft-text);
+  border-bottom: 1px dashed var(--stone-dark);
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+/* The photo sits to the LEFT of the name only — deliberately not centred
+   as its own element, so the row as a whole (photo + name) centres on the
+   page, and the name itself ends up a little right of true centre. That
+   asymmetry was explicitly signed off on rather than an oversight. */
+.owner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.owner-text {
+  text-align: left;
+}
+
+.owner-text .owner-name {
+  margin-top: 0;
+}
+
+/* Sized and positioned entirely in JavaScript (see positionOwnerPhoto in
+   app.js) — the spec is "top of the circle level with the top of the
+   title, bottom level with the bottom of the name, centred halfway
+   between the Home Wall button's left edge and the title's right edge".
+   That's a live geometric relationship between three separate elements,
+   not something a fixed CSS size/position could express correctly across
+   different names, screen widths, or devices. Width/height/top/left below
+   are fallbacks only, in case the positioning script hasn't run yet. */
+.owner-photo-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 84px;
+  height: 84px;
+}
+
+.owner-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--stone-dark);
+  box-shadow: 0 4px 14px rgba(70, 55, 35, 0.18);
+  cursor: pointer;
+  display: block;
+}
+
+.owner-photo-button {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px dashed var(--stone-dark);
+  background: var(--panel);
+  color: var(--soft-text);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.owner-photo-button:hover {
+  background: var(--stone-light);
+}
+
+/* Once a real photo is set, the button shrinks to a small pencil-style
+   overlay in the corner (its placeholder "+" hides itself) — clicking it
+   still reopens the file picker to change the photo. The separate ×
+   button appears alongside it to remove the photo entirely. */
+.owner-photo-button.has-photo {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  top: auto;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  border: 2px solid var(--panel);
+  background: var(--stone);
+}
+
+.owner-photo-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  background: #d8746a;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.owner-photo-remove:hover {
+  background: #c65f55;
+}
+
+.header p.owner-subtitle {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: var(--soft-text);
+}
+
+.wall {
+  width: min(100%, 1260px);
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: 42px 40px;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(255, 255, 250, 0.80), transparent 42%),
+    linear-gradient(180deg, #f2efe4, var(--mortar));
+  border: 1px solid #d9d2c0;
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    inset 0 0 46px rgba(120, 110, 80, 0.08),
+    0 24px 70px rgba(90, 84, 66, 0.10);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Foreword/Afterword — small bricks (~3.5 normal brick-widths) living
+   inside the wall's own frame now, each in its own centred row with empty
+   space either side, rather than a separate full-width bar outside it. */
+.edge-brick-row {
+  margin-bottom: 14px;
+}
+
+.edge-brick {
+  display: block;
+  width: calc(var(--brick-width, 104px) * 3.5 + 25px);
+  padding: 14px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 132, 110, 0.75);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.30), transparent 35%),
+    linear-gradient(145deg, var(--stone-light), var(--stone));
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.edge-brick.has-content {
+  background:
+    radial-gradient(circle at 42% 22%, rgba(255, 238, 184, 0.70), transparent 52%),
+    linear-gradient(145deg, #edca82, #d0a155);
+  border-color: #9b6f31;
+}
+
+.edge-brick:hover {
+  filter: brightness(1.03);
+}
+
+.brick-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.brick-row:last-child {
+  margin-bottom: 0;
+}
+
+.offset-row {
+  transform: none;
+  /* left/right padding is now set inline by app.js, calculated from the
+     wall's actual width so the stagger always matches the brick count */
+}
+
+.brick {
+  position: relative;
+  isolation: isolate;
+  width: var(--brick-width, 104px);
+  flex: 0 0 var(--brick-width, 104px);
+  height: 76px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 112, 90, 0.85);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.30), transparent 35%),
+    linear-gradient(145deg, var(--stone-light), var(--stone));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  padding: 13px 15px;
+  transition: transform 350ms ease, box-shadow 350ms ease, filter 350ms ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.50),
+    inset 0 -9px 16px rgba(100, 92, 68, 0.14),
+    0 3px 7px rgba(90, 84, 66, 0.13);
+}
+
+/* Procedural stone grain — two SVG noise filters layered together, not an
+   image file, so it tiles perfectly, costs nothing to load, and works over
+   every brick colour automatically. The coarse layer gives uneven, pitted
+   patches (the "crumbly" look); the fine layer adds close-up grit on top. */
+.brick::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='blotch'><feTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.42  0 0 0 0 0.35  0 0 0 0 0.22  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23blotch)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='grit'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.32  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23grit)'/></svg>");
+  background-size: 220px 220px, 90px 90px;
+  background-blend-mode: multiply;
+  mix-blend-mode: overlay;
+  opacity: 0.32;
+}
+
+.brick:nth-child(4n) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.26), transparent 35%),
+    linear-gradient(145deg, #f0ece0, #dcd3bf);
+}
+
+.brick:nth-child(7n) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.24), transparent 35%),
+    linear-gradient(145deg, #ece6d6, #d3c9b1);
+}
+
+.brick:hover,
+.brick:focus {
+  transform: translateY(-1px);
+  filter: brightness(1.025);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -8px 14px rgba(110, 80, 40, 0.08),
+    0 8px 16px rgba(70, 55, 35, 0.14);
+  outline: none;
+}
+
+.brick .year {
+  display: block;
+  font-size: 18px;
+}
+
+.brick .age {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(55, 47, 40, 0.72);
+}
+
+.brick.current {
+  background:
+    radial-gradient(circle at 42% 18%, rgba(240, 246, 230, 0.75), transparent 48%),
+    linear-gradient(145deg, var(--current-light), var(--current));
+  border-color: var(--current-border);
+  box-shadow:
+    inset 0 0 14px rgba(224, 236, 206, 0.55),
+    0 5px 12px rgba(90, 106, 68, 0.16);
+}
+
+.brick.future {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.40), transparent 35%),
+    linear-gradient(145deg, #f8f6ef, var(--future));
+  border-color: #ddd7c8;
+  color: #948c78;
+}
+
+.brick.has-memories {
+  background:
+    radial-gradient(circle at 42% 22%, rgba(255, 238, 184, 0.70), transparent 52%),
+    linear-gradient(145deg, #edca82, #d0a155);
+  border-color: #9b6f31;
+  box-shadow:
+    inset 0 0 14px rgba(255, 222, 138, 0.50),
+    0 5px 13px rgba(120, 80, 30, 0.14);
+}
+
+.brick.future.has-memories {
+  background: linear-gradient(145deg, #e8d4aa, #d6bf8c);
+}
+
+.brick.has-memories::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: rgba(96, 66, 28, 0.42);
+}
+
+.year-view {
+  max-width: 900px;
+  margin: 40px auto 0;
+  padding: 32px 48px 40px;
+  background: var(--panel);
+  border: 1px solid #d8cbb8;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(70, 55, 35, 0.08);
+}
+
+.back-button {
+  border: none;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.year-heading {
+  text-align: center;
+  margin: 12px 0 14px;
+}
+
+.year-heading h2 {
+  font-size: 48px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.year-heading p {
+  margin-top: 4px;
+  font-size: 20px;
+  color: var(--soft-text);
+}
+
+.year-invitation {
+  text-align: center;
+  margin-bottom: 18px;
+  font-size: 20px;
+  color: var(--soft-text);
+  line-height: 1.3;
+}
+
+.year-invitation p {
+  margin: 4px 0;
+}
+
+.memories-section h3 {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 500;
+  margin: 8px 0 12px;
+  color: var(--text);
+}
+
+.empty-year {
+  text-align: center;
+  margin: 30px auto;
+  padding: 36px;
+  max-width: 560px;
+  border: 1px solid #e3d7c6;
+  border-radius: 22px;
+  background: #fffaf0;
+  color: var(--soft-text);
+  font-size: 22px;
+  line-height: 1.45;
+}
+
+.memory-list {
+  margin-top: 20px;
+}
+
+.memory-card {
+  margin-top: 20px;
+  padding: 28px;
+  border-radius: 22px;
+  background: #fffaf0;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-card p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.memory-card small {
+  display: block;
+  margin-top: 18px;
+  color: var(--soft-text);
+  font-size: 15px;
+}
+
+.memory-card .memory-content {
+  white-space: normal;
+}
+
+.memory-card .memory-content p {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.memory-card img {
+  display: block;
+  width: 35%;
+  max-width: 100%;
+  height: auto;
+  margin: 22px auto;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 14px;
+}
+
+.memory-actions button {
+  border: none;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.memory-actions button:hover {
+  text-decoration: underline;
+}
+
+.keep-button {
+  display: block;
+  margin: 34px auto 0;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 26px;
+  background: var(--stone);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  margin-top: 16px;
+  border: none;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.memory-box {
+  margin-top: 14px;
+  text-align: left;
+}
+
+.memory-box label {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.editor-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.setup-view {
+  max-width: 620px;
+  margin: 80px auto 0;
+  padding: 48px;
+  background: var(--panel);
+  border: 1px solid #d8cbb8;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(70, 55, 35, 0.08);
+  text-align: center;
+}
+
+.setup-view h2 {
+  font-size: 42px;
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+
+.setup-view p {
+  font-size: 22px;
+  color: var(--soft-text);
+}
+
+.setup-view input[type="text"],
+.setup-view input[type="date"] {
+  display: block;
+  width: 260px;
+  margin: 12px auto 24px;
+  padding: 14px;
+  border: 1px solid #d8cbb8;
+  border-radius: 14px;
+  font-size: 20px;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  background: #fffaf0;
+  color: var(--text);
+}
+
+.life-tools {
+  max-width: 900px;
+  margin: 34px auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.life-tools button,
+.import-label {
+  border: 1px solid #d8cbb8;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--soft-text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.voice-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.voice-button {
+  border: 1px solid #d8cbb8;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #fffaf0;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.listening-status {
+  color: var(--soft-text);
+  font-size: 16px;
+  font-style: italic;
+}
+
+.photo-size-tools {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+}
+
+.rich-memory-input {
+  min-height: 260px;
+  border: 1px solid #d8cbb8;
+  border-radius: 18px;
+  padding: 20px;
+  font-size: 18px;
+  line-height: 1.6;
+  background: #fffaf0;
+  color: var(--text);
+  outline: none;
+}
+
+.rich-memory-input:focus {
+  outline: 2px solid #cdb084;
+}
+
+.rich-memory-input .tiptap {
+  min-height: 260px;
+  outline: none;
+}
+
+/* Photos need to center as a group (solo, or several side by side),
+   regardless of how many there are, while ordinary text stays left-aligned
+   exactly as before. Flex + wrap does this without touching text-align:
+   every non-photo child is forced to its own full-width line (so it's
+   unaffected by the centering), while photos — which size to their own
+   content — are free to sit together and get centered as a run.
+
+   The two contexts render photos as different elements, so each needs its
+   own exclusion: the LIVE editor's node view renders a photo as
+   <div class="memory-image-wrapper">, while the SAVED/static display
+   (memory cards, Life Book) renders it as <figure class="memory-figure">.
+   Excluding only one of these left the other being force-fit to
+   flex-basis: 100%, which silently overrides any inline width — that was
+   the actual cause of Small/Medium not visibly working in the editor. */
+.tiptap,
+.memory-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.tiptap > *:not(.memory-image-wrapper),
+.memory-content > *:not(figure.memory-figure) {
+  flex: 1 1 100%;
+  width: 100%;
+  text-align: left;
+}
+
+.tiptap img {
+  display: block;
+  width: 35%;
+  max-width: 100%;
+  height: auto;
+  margin: 22px auto;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+}
+
+/* The photo wrapper rendered by the editor's custom image node view.
+   inline-block (rather than block) is what lets two small photos sit side
+   by side — as long as their combined widths fit, they'll line up
+   horizontally instead of each forcing its own row. */
+.memory-image-wrapper {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 14px 10px;
+  cursor: grab;
+}
+
+.memory-image-wrapper:active {
+  cursor: grabbing;
+}
+
+.memory-image-wrapper.is-moving {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.memory-image-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+  pointer-events: none;
+}
+
+/* The editable caption line under each photo in the editor. Shows a faint
+   prompt when empty; an empty caption never appears in the saved memory. */
+.memory-image-caption {
+  margin-top: 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--soft-text);
+  text-align: center;
+  outline: none;
+  min-height: 18px;
+  cursor: text;
+}
+
+.memory-image-caption:empty::before {
+  content: attr(data-placeholder);
+  color: #b5ab99;
+}
+
+.memory-image-wrapper.ProseMirror-selectednode {
+  outline: 2px solid var(--stone-dark, #b0a68f);
+  outline-offset: 5px;
+  border-radius: 18px;
+}
+
+.memory-image-resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--stone-dark, #b0a68f);
+  border: 2px solid var(--panel, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  touch-action: none;
+}
+
+.memory-image-wrapper:hover .memory-image-resize-handle,
+.memory-image-wrapper.ProseMirror-selectednode .memory-image-resize-handle {
+  opacity: 1;
+}
+
+.editor-hint {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--soft-text);
+  font-style: italic;
+}
+
+/* Saved photos render as figures — inline-block so side-by-side photos in
+   the editor stay side by side in the saved memory card too. */
+.memory-content figure.memory-figure {
+  display: inline-block;
+  vertical-align: top;
+  margin: 14px 10px;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.memory-content figure.memory-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid #d8cbb8;
+}
+
+.memory-content figure.memory-figure figcaption {
+  margin-top: 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--soft-text);
+  text-align: center;
+}
+
+.menu-bar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.menu-item {
+  border: 1px solid #d8cbb8;
+  border-radius: 999px;
+  padding: 9px 20px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--stone-light);
+}
+
+.info-page {
+  max-width: 760px;
+  margin: 40px auto 0;
+  padding: 44px;
+  background: var(--panel);
+  border: 1px solid #d8cbb8;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(70, 55, 35, 0.08);
+}
+
+.info-page h2 {
+  margin-top: 0;
+  font-size: 32px;
+  font-weight: 500;
+}
+
+.info-page p {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.foreword-hint {
+  color: var(--soft-text) !important;
+  font-style: italic;
+}
+
+.foreword-text {
+  display: block;
+  width: 100%;
+  border: 1px solid #d8cbb8;
+  border-radius: 18px;
+  padding: 20px;
+  font-size: 18px;
+  line-height: 1.6;
+  font-family: Georgia, "Times New Roman", serif;
+  background: #fffaf0;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+}
+
+.foreword-text:focus {
+  outline: 2px solid #cdb084;
+}
+
+.foreword-status {
+  text-align: center;
+  color: var(--current-border);
+  font-style: italic;
+}
+
+.contents-list {
+  column-count: 2;
+  column-gap: 24px;
+}
+
+.contents-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  break-inside: avoid;
+  margin-bottom: 10px;
+  padding: 14px 18px;
+  border: 1px solid #d8cbb8;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.contents-item:hover {
+  background: var(--stone-light);
+}
+
+.contents-item .contents-age {
+  color: var(--soft-text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.contents-empty {
+  text-align: center;
+  color: var(--soft-text);
+  font-style: italic;
+}
+
+.format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
+  padding: 8px 10px;
+  border: 1px solid #d8cbb8;
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.format-divider {
+  width: 1px;
+  height: 22px;
+  background: #d8cbb8;
+  margin: 0 2px;
+}
+
+.format-select {
+  border: 1px solid #d8cbb8;
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: #fffaf0;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.format-button {
+  border: 1px solid #d8cbb8;
+  border-radius: 8px;
+  min-width: 36px;
+  padding: 7px 10px;
+  background: #fffaf0;
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.format-button.is-active {
+  background: var(--stone);
+  border-color: var(--stone-dark);
+}
+
+/* Links inside a story — both while writing and in the saved memory card. */
+.tiptap a,
+.memory-content a {
+  color: #8a6a2e;
+  text-decoration: underline;
+  text-decoration-color: #d8b96a;
+  text-underline-offset: 2px;
+}
+
+.tiptap a:hover,
+.memory-content a:hover {
+  color: #6b5122;
+}
+
+.mic-icon {
+  font-size: 24px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Fixed jump-to-top / jump-to-bottom buttons, shown only when the page is
+   actually long enough to need them. */
+.scroll-jump {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+}
+
+.scroll-jump-button {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--stone-dark);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(70, 55, 35, 0.18);
+  opacity: 0.85;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.scroll-jump-button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .scroll-jump {
+    right: 8px;
+  }
+
+  .scroll-jump-button {
+    width: 40px;
+    height: 40px;
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 24px 12px;
+  }
+
+  .header h1 {
+    font-size: 30px;
+  }
+
+  .header p {
+    font-size: 16px;
+  }
+
+  .header p.owner-name {
+    font-size: 44px;
+  }
+
+  .wall {
+    padding: 20px 10px;
+    border-radius: 16px;
+  }
+
+  .edge-brick {
+    font-size: 15px;
+    padding: 11px 0;
+  }
+
+  .brick-row {
+    margin-bottom: 8px;
+  }
+
+  .brick {
+    height: 64px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+
+  .brick .year {
+    font-size: 15px;
+  }
+
+  .brick .age {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .setup-view,
+  .year-view {
+    padding: 28px 20px;
+    margin-top: 40px;
+  }
+
+  .year-heading h2 {
+    font-size: 42px;
+  }
+}
