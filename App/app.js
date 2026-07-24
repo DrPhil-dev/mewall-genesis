@@ -406,6 +406,7 @@ const ownerSubtitle = document.getElementById("ownerSubtitle");
 const ownerPhotoButton = document.getElementById("ownerPhotoButton");
 const ownerPhotoImg = document.getElementById("ownerPhotoImg");
 const ownerPhotoPlaceholder = document.getElementById("ownerPhotoPlaceholder");
+const ownerPhotoChangeIcon = document.getElementById("ownerPhotoChangeIcon");
 const ownerPhotoInput = document.getElementById("ownerPhotoInput");
 const ownerPhotoRemove = document.getElementById("ownerPhotoRemove");
 const ownerPhotoWrap = document.querySelector(".owner-photo-wrap");
@@ -678,36 +679,33 @@ function showWall() {
 // the Life Book title page) reads it from there. So adding or changing
 // it here retroactively applies to every memory ever recorded; nothing
 // is stamped per-story.
-// The photo circle's size and position are computed live from three real
-// rendered elements: it spans vertically from the top of the title to the
-// bottom of the owner's name, and its centre sits horizontally halfway
-// between the Home Wall button's left edge and the title's right edge.
-// Fixed CSS values can't express that — it has to be measured after the
-// header actually renders, and re-measured whenever it might have
-// reflowed (a resize, a name change, first showing the wall).
+// Vertically the circle still spans title-top to name-bottom. Horizontally
+// it's now anchored to the wall frame's own left edge — that edge never
+// moves regardless of how long the name or title text is, unlike the
+// previous approach (centred between two text elements), which could
+// overlap a long name or title since text width isn't predictable.
 function positionOwnerPhoto() {
   if (!menuBar || menuBar.classList.contains("hidden")) return;
 
   const h1 = document.getElementById("titleText");
-  const homeButton = document.querySelector('.menu-item[data-page="home"]');
-  if (!h1 || !homeButton || !ownerName || !ownerPhotoWrap) return;
+  const wallStage = document.querySelector(".wall-stage");
+  if (!h1 || !wallStage || !ownerName || !ownerPhotoWrap) return;
 
   const headerEl = document.querySelector(".header");
   const headerRect = headerEl.getBoundingClientRect();
   const h1Rect = h1.getBoundingClientRect();
   const nameRect = ownerName.getBoundingClientRect();
-  const homeRect = homeButton.getBoundingClientRect();
+  const wallRect = wallStage.getBoundingClientRect();
 
   // Nothing has actually rendered yet (e.g. fonts still loading, or the
   // header is momentarily hidden) — bail rather than apply a bogus size.
-  if (h1Rect.height === 0 || nameRect.height === 0) return;
+  if (h1Rect.height === 0 || nameRect.height === 0 || wallRect.width === 0) return;
 
   const top = h1Rect.top - headerRect.top;
   const bottom = nameRect.bottom - headerRect.top;
   const diameter = Math.max(40, bottom - top);
 
-  const centerX = (homeRect.left + h1Rect.right) / 2 - headerRect.left;
-  const left = centerX - diameter / 2;
+  const left = wallRect.left - headerRect.left;
 
   ownerPhotoWrap.style.top = `${top}px`;
   ownerPhotoWrap.style.left = `${left}px`;
@@ -745,6 +743,7 @@ function updateOwnerPhoto() {
     ownerPhotoImg.src = settings.ownerPhoto;
     ownerPhotoImg.classList.remove("hidden");
     ownerPhotoPlaceholder.classList.add("hidden");
+    ownerPhotoChangeIcon.classList.remove("hidden");
     ownerPhotoButton.classList.add("has-photo");
     ownerPhotoButton.title = "Click to change this photo";
     ownerPhotoRemove.classList.remove("hidden");
@@ -752,6 +751,7 @@ function updateOwnerPhoto() {
     ownerPhotoImg.classList.add("hidden");
     ownerPhotoImg.removeAttribute("src");
     ownerPhotoPlaceholder.classList.remove("hidden");
+    ownerPhotoChangeIcon.classList.add("hidden");
     ownerPhotoButton.classList.remove("has-photo");
     ownerPhotoButton.title = "Click to add a photo";
     ownerPhotoRemove.classList.add("hidden");
