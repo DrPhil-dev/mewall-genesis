@@ -410,6 +410,7 @@ body {
     inset 0 -8px 14px rgba(110, 80, 40, 0.08),
     0 8px 16px rgba(70, 55, 35, 0.14);
   outline: none;
+  z-index: 20;
 }
 
 .brick .year {
