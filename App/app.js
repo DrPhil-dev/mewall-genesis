@@ -2040,6 +2040,21 @@ hamburgerMenuButton.addEventListener("click", () => showInfoPage("pageMenu"));
 document.getElementById("menuChangeNameButton").addEventListener("click", changeName);
 document.getElementById("menuChangeBirthDateButton").addEventListener("click", changeBirthDate);
 
+document.getElementById("referFriendButton").addEventListener("click", () => {
+  const senderName = settings.name && settings.name.trim() ? settings.name.trim() : "";
+
+  const subject = "You've got to see this — My Life Wall";
+  const body =
+    "Hi,\n\n" +
+    "I wanted to share something with you, an app called My Life Wall. It's a beautifully simple way to record the story of your life, one year at a time. Click a year, write down what you remember, add photos if you like, and slowly build up a private wall of memories you can turn into a printed keepsake book whenever you're ready.\n\n" +
+    "I've been using it myself and thought you might enjoy it too.\n\n" +
+    "Have a look here: https://my-life-wall.pages.dev\n\n" +
+    (senderName ? senderName : "");
+
+  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
+});
+
 actionImportBackup.addEventListener("click", () => importInput.click());
 actionExportBackup.addEventListener("click", exportLife);
 actionForeword.addEventListener("click", () => showInfoPage("pageForeword"));
