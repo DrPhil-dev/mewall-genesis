@@ -1034,8 +1034,31 @@ function createBrick(year, age) {
   `;
 
   brick.addEventListener("click", () => openYear(year, age));
+  brick.addEventListener("mouseenter", () => positionBrickTooltip(brick));
+  brick.addEventListener("focus", () => positionBrickTooltip(brick));
 
   return brick;
+}
+
+// The tooltip normally pops upward above the brick — but the wall itself
+// clips anything that overflows its own rounded edges, so a brick near
+// the top of the wall has nowhere for an upward tooltip to actually
+// render. Measured live (not guessed with a fixed row cutoff) because a
+// short title needs less headroom than a long one, and the same brick
+// might need different treatment depending on what's actually typed into
+// it.
+function positionBrickTooltip(brick) {
+  const tooltip = brick.querySelector(".brick-title-tooltip");
+  if (!wall || !tooltip) return;
+
+  const wallRect = wall.getBoundingClientRect();
+  const brickRect = brick.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+
+  const spaceAbove = brickRect.top - wallRect.top;
+  const neededSpace = tooltipRect.height + 16; // the tooltip's own gap, plus a little breathing room
+
+  brick.classList.toggle("tooltip-below", spaceAbove < neededSpace);
 }
 
 function openYear(year, age) {

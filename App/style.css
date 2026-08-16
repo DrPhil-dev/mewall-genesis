@@ -335,6 +335,27 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Flipped downward for bricks too close to the wall's own top edge —
+   an upward tooltip there would be sliced off by the wall's rounded-
+   corner clipping before it ever became visible. */
+.brick.tooltip-below .brick-title-tooltip {
+  bottom: auto;
+  top: calc(100% + 10px);
+  transform: translateX(-50%) translateY(-6px);
+}
+
+.brick.tooltip-below .brick-title-tooltip::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--panel, #fffdf8);
+}
+
+.brick.tooltip-below:hover .brick-title-tooltip,
+.brick.tooltip-below:focus-visible .brick-title-tooltip {
+  transform: translateX(-50%) translateY(0);
+}
+
 /* The small red dot marking whichever brick was most recently opened —
    so returning to the wall always shows at a glance where you left off. */
 .brick-last-used-dot {
