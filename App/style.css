@@ -47,7 +47,7 @@ body {
 
 .corner-writer {
   position: absolute;
-  bottom: -22px;
+  bottom: 8px;
   z-index: 1;
   pointer-events: none;
   width: 165px;
@@ -55,11 +55,11 @@ body {
 }
 
 .corner-writer-left {
-  left: -18px;
+  left: 8px;
 }
 
 .corner-writer-right {
-  right: -18px;
+  right: 8px;
 }
 
 @media (max-width: 900px) {
@@ -459,6 +459,12 @@ body {
   color: var(--soft-text);
   font-size: 18px;
   cursor: pointer;
+}
+
+#infoBackButton {
+  display: block;
+  margin: 0 auto 18px;
+  text-align: center;
 }
 
 .year-heading {
@@ -1058,6 +1064,13 @@ body {
 
 .foreword-text:focus {
   outline: 2px solid #cdb084;
+}
+
+/* Explicitly matches the button font size (16px) per the client's
+   instruction — the Foreword/Notes textareas above keep their own larger,
+   more readable serif size since that instruction was Afterword-specific. */
+#afterwordText {
+  font-size: 16px;
 }
 
 .foreword-status {
