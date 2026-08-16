@@ -64,6 +64,7 @@
       <h2>Welcome to My Life Wall</h2>
       <p>My Life Wall is a place to gather the story of a life, one year at a time. Each brick on the wall is a year. Some years hold many memories, some are still waiting for theirs.</p>
       <p>There is no right order and no deadline. Start with the years you remember most vividly and let the rest follow.</p>
+      <h3 class="menu-section-heading">Features</h3>
       <p>The Home Wall — a brick for every year of a life, coloured by whether it holds memories yet. The memory editor — write, dictate, or photograph your way through a year. The Life Book — the whole wall gathered into a printable book. Backups — export and import everything as a single file.</p>
       <p><em>(Placeholder content — final wording to come.)</em></p>
     </section>
@@ -145,17 +146,18 @@
     </div>
 
     <section id="yearView" class="year-view hidden">
-      <button id="backButton" class="back-button">← Home Wall</button>
-
-      <div class="year-heading">
-        <h2 id="yearTitle"></h2>
-        <span id="yearAge"></span>
+      <div class="year-top-row">
+        <button id="backButton" class="back-button">← Home Wall</button>
+        <div class="year-heading">
+          <h2 id="yearTitle"></h2>
+          <span id="yearAge"></span>
+        </div>
+        <div class="year-top-row-spacer" aria-hidden="true"></div>
       </div>
 
       <input id="yearCustomTitleInput" type="text" class="year-title-input" placeholder="Give this year a title (optional)">
 
       <section class="memories-section">
-        <h3 id="memoriesHeading" class="hidden">Memories</h3>
         <div id="emptyYear" class="empty-year hidden"></div>
         <div id="memoryList" class="memory-list"></div>
       </section>

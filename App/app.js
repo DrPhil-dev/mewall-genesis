@@ -420,7 +420,6 @@ const cancelMemoryButton = document.getElementById("cancelMemoryButton");
 const memoryEditor = document.getElementById("memoryEditor");
 const memoryTitleInput = document.getElementById("memoryTitleInput");
 const memoryList = document.getElementById("memoryList");
-const memoriesHeading = document.getElementById("memoriesHeading");
 const forewordText = document.getElementById("forewordText");
 const forewordStatus = document.getElementById("forewordStatus");
 const afterwordText = document.getElementById("afterwordText");
@@ -1051,7 +1050,7 @@ function openYear(year, age) {
   document.getElementById("infoBackButton").classList.add("hidden");
   setHomeArtVisible(false);
 
-  yearTitle.textContent = `${year}`;
+  yearTitle.textContent = `Memories: ${year}`;
   yearAge.textContent = `– Age ${age}`;
   yearCustomTitleInput.value = getYearTitle(year);
 
@@ -1190,10 +1189,8 @@ function renderMemories() {
   const yearMemories = memories[selectedYear] || [];
 
   // The empty-state message is retired — years with no memories now go
-  // straight to the entry field instead (see openYear). The "Memories"
-  // heading only appears once there's something under it.
+  // straight to the entry field instead (see openYear).
   emptyYear.classList.add("hidden");
-  memoriesHeading.classList.toggle("hidden", yearMemories.length === 0);
   showEditorButton.textContent = yearMemories.length === 0
     ? "Record your first memory"
     : "Record another memory";
