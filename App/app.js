@@ -817,36 +817,36 @@ function showInfoPage(pageId) {
 function renderContentsPage() {
   contentsList.innerHTML = "";
 
-  const chapterNums = Object.keys(memories)
-    .filter(num => memories[num] && memories[num].length > 0)
+  const years = Object.keys(memories)
+    .filter(year => memories[year] && memories[year].length > 0)
     .sort((a, b) => Number(a) - Number(b));
 
-  if (chapterNums.length === 0) {
+  if (years.length === 0) {
     const empty = document.createElement("p");
     empty.className = "contents-empty";
-    empty.textContent = "Nothing recorded yet — once a chapter has an entry in it, it'll show up here.";
+    empty.textContent = "Nothing recorded yet — once a year has a memory in it, it'll show up here.";
     contentsList.appendChild(empty);
     return;
   }
 
-  chapterNums.forEach(numStr => {
-    const chapterNum = Number(numStr);
-    const count = memories[numStr].length;
+  years.forEach(year => {
+    const age = Number(year) - settings.birthYear;
+    const count = memories[year].length;
 
     const item = document.createElement("button");
     item.type = "button";
     item.className = "contents-item";
 
     const label = document.createElement("span");
-    label.textContent = `Chapter ${chapterNum} — ${getChapterTitle(chapterNum)}`;
+    label.textContent = `${year} — Age ${age}`;
     item.appendChild(label);
 
     const meta = document.createElement("span");
     meta.className = "contents-age";
-    meta.textContent = count === 1 ? "1 entry" : `${count} entries`;
+    meta.textContent = count === 1 ? "1 memory" : `${count} memories`;
     item.appendChild(meta);
 
-    item.addEventListener("click", () => openChapter(chapterNum));
+    item.addEventListener("click", () => openYear(Number(year), age));
     contentsList.appendChild(item);
   });
 }
@@ -934,17 +934,17 @@ function getWallLayout() {
   return { bricksPerRow, staggerBricksPerRow, staggerOffset };
 }
 
-const TOTAL_CHAPTERS = 100;
-
 function createWall() {
   wall.innerHTML = "";
 
+  const birthYear = settings.birthYear;
+  const futureHorizon = birthYear + 99;
   const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
-  let chapterNum = 1;
+  let year = birthYear;
   let rowIndex = 0;
 
-  while (chapterNum <= TOTAL_CHAPTERS) {
+  while (year <= futureHorizon) {
     const isOffsetRow = rowIndex % 2 === 1;
     const rowSize = isOffsetRow ? staggerBricksPerRow : bricksPerRow;
 
@@ -956,14 +956,47 @@ function createWall() {
       row.style.paddingRight = `${staggerOffset}px`;
     }
 
-    for (let i = 0; i < rowSize && chapterNum <= TOTAL_CHAPTERS; i++) {
-      row.appendChild(createBrick(chapterNum));
-      chapterNum++;
+    for (let i = 0; i < rowSize && year <= futureHorizon; i++) {
+      const age = year - birthYear;
+      row.appendChild(createBrick(year, age));
+      year++;
     }
 
     wall.appendChild(row);
     rowIndex++;
   }
+
+  requestAnimationFrame(alignActionRowToBricks);
+}
+
+// The client's spec was exact: the action row should span "left of the
+// 1959 brick to right of the 1968 brick" — the actual first and last
+// bricks in the wall's first row, not an approximate side padding. Bricks
+// resize responsively, so this is measured live rather than guessed at
+// with a fixed CSS value.
+function alignActionRowToBricks() {
+  const actionRow = document.querySelector(".action-row");
+  const wallStage = document.querySelector(".wall-stage");
+  const firstRow = wall.querySelector(".brick-row");
+  if (!actionRow || !wallStage || !firstRow) return;
+
+  const rowBricks = firstRow.querySelectorAll(".brick");
+  if (rowBricks.length === 0) return;
+
+  const firstBrick = rowBricks[0];
+  const lastBrick = rowBricks[rowBricks.length - 1];
+
+  const wallStageRect = wallStage.getBoundingClientRect();
+  const firstBrickRect = firstBrick.getBoundingClientRect();
+  const lastBrickRect = lastBrick.getBoundingClientRect();
+
+  if (wallStageRect.width === 0) return;
+
+  const leftPad = Math.max(0, firstBrickRect.left - wallStageRect.left);
+  const rightPad = Math.max(0, wallStageRect.right - lastBrickRect.right);
+
+  actionRow.style.paddingLeft = `${leftPad}px`;
+  actionRow.style.paddingRight = `${rightPad}px`;
 }
 
 // Rebuild the wall if the window is resized while it's visible, so the
@@ -975,86 +1008,39 @@ window.addEventListener("resize", () => {
   wallResizeTimeout = setTimeout(createWall, 150);
 });
 
-function getChapterTitle(chapterNum) {
-  const custom = settings.chapterTitles && settings.chapterTitles[chapterNum];
-  return custom && custom.trim() ? custom.trim() : `Chapter ${chapterNum}`;
+function getYearTitle(year) {
+  const custom = settings.yearTitles && settings.yearTitles[year];
+  return custom && custom.trim() ? custom.trim() : "";
 }
 
-function hasCustomChapterTitle(chapterNum) {
-  const custom = settings.chapterTitles && settings.chapterTitles[chapterNum];
-  return Boolean(custom && custom.trim());
-}
-
-function renameChapter(chapterNum) {
-  const existing = settings.chapterTitles && settings.chapterTitles[chapterNum];
-  const entered = prompt(`Title for Chapter ${chapterNum}:`, existing || "");
-  if (entered === null) return; // cancelled
-
-  if (!settings.chapterTitles) settings.chapterTitles = {};
-  settings.chapterTitles[chapterNum] = entered.trim();
-  saveSettings();
-  createWall();
-}
-
-// Chapters have no automatic "today" the way years did — this is a manual
-// bookmark instead: click the star to mark whichever chapter you're
-// currently working on, click it again to clear it. Only one at a time.
-function toggleCurrentChapter(chapterNum) {
-  settings.currentChapterId = settings.currentChapterId === chapterNum ? null : chapterNum;
-  saveSettings();
-  createWall();
-}
-
-function createBrick(chapterNum) {
+function createBrick(year, age) {
   const brick = document.createElement("button");
   brick.className = "brick";
+  brick.setAttribute("aria-label", `${year}, age ${age}`);
 
-  const title = getChapterTitle(chapterNum);
-  brick.setAttribute("aria-label", `Chapter ${chapterNum}: ${title}`);
-
-  if (settings.currentChapterId === chapterNum) brick.classList.add("current");
-  if (memories[chapterNum] && memories[chapterNum].length > 0) {
+  if (year === currentYear) brick.classList.add("current");
+  if (year > currentYear) brick.classList.add("future");
+  if (memories[year] && memories[year].length > 0) {
     brick.classList.add("has-memories");
   }
 
-  // Untitled chapters get the same inviting wording years uses, rather
-  // than just repeating "Chapter N" back in the tooltip.
-  const tooltipText = hasCustomChapterTitle(chapterNum)
-    ? title
-    : "Give this chapter a title (optional)";
+  const customTitle = getYearTitle(year);
+  const tooltipText = customTitle || "Give this year a title (optional)";
 
   brick.innerHTML = `
-    <span class="year">${escapeHtml(title)}</span>
-    <span class="age">Chapter ${chapterNum}</span>
-    <span class="brick-tools">
-      <span class="brick-tool brick-rename" title="Rename this chapter">✎</span>
-      <span class="brick-tool brick-mark-current" title="Mark as the chapter I'm currently working on">★</span>
-    </span>
+    <span class="year">${year}</span>
+    <span class="age">Age ${age}</span>
     <span class="brick-title-tooltip" role="tooltip">${escapeHtml(tooltipText)}</span>
-    ${settings.lastUsedChapter === chapterNum ? '<span class="brick-last-used-dot" aria-hidden="true"></span>' : ""}
+    ${settings.lastUsedYear === year ? '<span class="brick-last-used-dot" aria-hidden="true"></span>' : ""}
   `;
 
-  brick.addEventListener("click", event => {
-    if (event.target.closest(".brick-rename")) {
-      event.stopPropagation();
-      renameChapter(chapterNum);
-      return;
-    }
-
-    if (event.target.closest(".brick-mark-current")) {
-      event.stopPropagation();
-      toggleCurrentChapter(chapterNum);
-      return;
-    }
-
-    openChapter(chapterNum);
-  });
+  brick.addEventListener("click", () => openYear(year, age));
 
   return brick;
 }
 
-function openChapter(chapterNum) {
-  selectedYear = chapterNum;
+function openYear(year, age) {
+  selectedYear = year;
   editingMemoryIndex = null;
 
   wall.classList.add("hidden");
@@ -1065,10 +1051,9 @@ function openChapter(chapterNum) {
   document.getElementById("infoBackButton").classList.add("hidden");
   setHomeArtVisible(false);
 
-  yearTitle.textContent = `Chapter ${chapterNum}`;
-  const customChapterTitle = settings.chapterTitles && settings.chapterTitles[chapterNum] && settings.chapterTitles[chapterNum].trim();
-  yearAge.textContent = customChapterTitle ? `– ${customChapterTitle}` : "";
-  yearCustomTitleInput.value = customChapterTitle || "";
+  yearTitle.textContent = `${year}`;
+  yearAge.textContent = `– Age ${age}`;
+  yearCustomTitleInput.value = getYearTitle(year);
 
   editor.commands.clearContent();
   memoryTitleInput.value = "";
@@ -1080,14 +1065,14 @@ function openChapter(chapterNum) {
 
   // Marks this brick with the small red dot next time the wall renders,
   // so returning to it always shows at a glance where you left off.
-  settings.lastUsedChapter = chapterNum;
+  settings.lastUsedYear = year;
   saveSettings();
 
-  // If nothing has been recorded in this chapter yet, skip the empty-state
+  // If nothing has been remembered from this year yet, skip the empty-state
   // messaging and go straight to the entry field — no point making people
   // click through "Record your first memory" to reach an obvious next step.
-  const chapterMemories = memories[selectedYear] || [];
-  if (chapterMemories.length === 0) {
+  const yearMemories = memories[selectedYear] || [];
+  if (yearMemories.length === 0) {
     showEditor();
   }
 }
@@ -1182,7 +1167,7 @@ function editMemory(index) {
 }
 
 async function deleteMemory(index) {
-  const confirmed = confirm("Remove this memory from this chapter?");
+  const confirmed = confirm("Remove this memory from this year?");
   if (!confirmed) return;
 
   memories[selectedYear].splice(index, 1);
@@ -1529,6 +1514,7 @@ function importLife(event) {
 }
 
 function createLifeBook() {
+  const birthYear = settings.birthYear;
   const years = Object.keys(memories).sort((a, b) => Number(a) - Number(b));
   const owner = settings.name || "My Life";
 
@@ -1711,12 +1697,15 @@ function createLifeBook() {
       </section>
   `;
 
-  // A live table of contents — every chapter that actually has something
-  // recorded, in order, same as the Contents page shows.
-  const writtenChapters = years.filter(num => (memories[num] || []).length > 0);
-  if (writtenChapters.length > 0) {
-    const contentsItems = writtenChapters
-      .map(num => `<li>Chapter ${num} — ${escapeHtml(getChapterTitle(Number(num)))}</li>`)
+  // A live table of contents — every year that actually has something
+  // recorded, in order, same as the Contents brick on the wall shows.
+  const writtenYears = years.filter(year => (memories[year] || []).length > 0);
+  if (writtenYears.length > 0) {
+    const contentsItems = writtenYears
+      .map(year => {
+        const age = Number(year) - birthYear;
+        return `<li>${year} — Age ${age}</li>`;
+      })
       .join("\n");
 
     bookHtml += `
@@ -1744,16 +1733,16 @@ function createLifeBook() {
   `;
   }
 
-  years.forEach((chapterNumStr) => {
-    const chapterNum = Number(chapterNumStr);
-    const chapterMemories = memories[chapterNumStr] || [];
+  years.forEach((year) => {
+    const age = Number(year) - birthYear;
+    const yearMemories = memories[year] || [];
 
     bookHtml += `
       <section class="year-chapter">
-        <h2>Chapter ${chapterNum} &mdash; ${escapeHtml(getChapterTitle(chapterNum))}</h2>
+        <h2>${year} - Age ${age}</h2>
     `;
 
-    chapterMemories.forEach((memory) => {
+    yearMemories.forEach((memory) => {
       const content = memory.html || `<p>${escapeHtml(memory.text || "")}</p>`;
       bookHtml += `
         <article class="memory">
@@ -1997,16 +1986,21 @@ notesText.addEventListener("input", () => {
   }, 600);
 });
 
-// The chapter-title input on the page writes to the exact same data the
-// brick's pencil icon already uses — two ways to rename, one source of
-// truth. Saves itself a moment after typing stops, like Notes.
+ownerName.addEventListener("click", () => {
+  // Only meaningful once a wall exists — on the setup screen the name
+  // field is right there anyway.
+  if (settings.birthYear) changeName();
+});
+
+// A year's own title works the same way as Notes — saves itself a
+// moment after typing stops.
 let yearTitleSaveTimeout = null;
 yearCustomTitleInput.addEventListener("input", () => {
   clearTimeout(yearTitleSaveTimeout);
   yearTitleSaveTimeout = setTimeout(() => {
     if (selectedYear === null) return;
-    if (!settings.chapterTitles) settings.chapterTitles = {};
-    settings.chapterTitles[selectedYear] = yearCustomTitleInput.value.trim();
+    if (!settings.yearTitles) settings.yearTitles = {};
+    settings.yearTitles[selectedYear] = yearCustomTitleInput.value.trim();
     saveSettings();
   }, 600);
 });

@@ -290,115 +290,8 @@ body {
     0 3px 7px rgba(90, 84, 66, 0.13);
 }
 
-/* Procedural stone grain — two SVG noise filters layered together, not an
-   image file, so it tiles perfectly, costs nothing to load, and works over
-   every brick colour automatically. The coarse layer gives uneven, pitted
-   patches (the "crumbly" look); the fine layer adds close-up grit on top. */
-.brick::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='blotch'><feTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.42  0 0 0 0 0.35  0 0 0 0 0.22  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23blotch)'/></svg>"),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='grit'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.32  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23grit)'/></svg>");
-  background-size: 220px 220px, 90px 90px;
-  background-blend-mode: multiply;
-  mix-blend-mode: overlay;
-  opacity: 0.32;
-}
-
-.brick:nth-child(4n) {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.26), transparent 35%),
-    linear-gradient(145deg, #f0ece0, #dcd3bf);
-}
-
-.brick:nth-child(7n) {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.24), transparent 35%),
-    linear-gradient(145deg, #ece6d6, #d3c9b1);
-}
-
-.brick:hover,
-.brick:focus {
-  transform: translateY(-1px);
-  filter: brightness(1.025);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 -8px 14px rgba(110, 80, 40, 0.08),
-    0 8px 16px rgba(70, 55, 35, 0.14);
-  outline: none;
-}
-
-.brick .year {
-  display: block;
-  font-size: 18px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.brick .age {
-  display: block;
-  margin-top: 6px;
-  font-size: 13px;
-  color: rgba(55, 47, 40, 0.72);
-}
-
-/* Rename and mark-current controls — quiet by default, since the brick's
-   own title/number already carries the important information, but always
-   reachable without opening the chapter (per the client's preference for
-   these controls living "on the outside"). */
-.brick-tools {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: flex;
-  gap: 4px;
-  opacity: 0.35;
-  transition: opacity 150ms ease;
-}
-
-.brick:hover .brick-tools,
-.brick:focus-visible .brick-tools {
-  opacity: 1;
-}
-
-.brick-tool {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.55);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.brick-tool:hover {
-  background: rgba(255, 255, 255, 0.85);
-  transform: scale(1.08);
-}
-
-.brick-mark-current {
-  color: var(--sage-deep, #56643f);
-}
-
-.brick.current .brick-mark-current {
-  color: #c9a227;
-  background: rgba(255, 255, 255, 0.75);
-}
-
-/* Chapter titles can run much longer than a 4-digit year ever could, so
-   they get ellipsis-truncated on the brick face — this pop-out is what
-   lets the full title actually be read, at readable size, regardless of
-   length. Shrinking the font instead would only buy a few more
-   characters before the same problem reappears. */
+/* Hover a brick to see its custom title, or an invitation to add one —
+   larger size and font than a typical tooltip, so it's genuinely readable. */
 .brick-title-tooltip {
   position: absolute;
   left: 50%;
@@ -452,6 +345,61 @@ body {
   border-radius: 50%;
   background: #d8746a;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Procedural stone grain — two SVG noise filters layered together, not an
+   image file, so it tiles perfectly, costs nothing to load, and works over
+   every brick colour automatically. The coarse layer gives uneven, pitted
+   patches (the "crumbly" look); the fine layer adds close-up grit on top. */
+.brick::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='blotch'><feTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.42  0 0 0 0 0.35  0 0 0 0 0.22  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23blotch)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='grit'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.32  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23grit)'/></svg>");
+  background-size: 220px 220px, 90px 90px;
+  background-blend-mode: multiply;
+  mix-blend-mode: overlay;
+  opacity: 0.32;
+}
+
+.brick:nth-child(4n) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.26), transparent 35%),
+    linear-gradient(145deg, #f0ece0, #dcd3bf);
+}
+
+.brick:nth-child(7n) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.24), transparent 35%),
+    linear-gradient(145deg, #ece6d6, #d3c9b1);
+}
+
+.brick:hover,
+.brick:focus {
+  transform: translateY(-1px);
+  filter: brightness(1.025);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -8px 14px rgba(110, 80, 40, 0.08),
+    0 8px 16px rgba(70, 55, 35, 0.14);
+  outline: none;
+}
+
+.brick .year {
+  display: block;
+  font-size: 18px;
+}
+
+.brick .age {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(55, 47, 40, 0.72);
 }
 
 .brick.current {
@@ -1098,6 +1046,13 @@ body {
 
 .foreword-text:focus {
   outline: 2px solid #cdb084;
+}
+
+/* Explicitly matches the button font size (16px) per the client's
+   instruction — the Foreword/Notes textareas above keep their own larger,
+   more readable serif size since that instruction was Afterword-specific. */
+#afterwordText {
+  font-size: 16px;
 }
 
 .foreword-status {
