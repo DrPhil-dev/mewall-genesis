@@ -47,7 +47,7 @@ body {
 
 .corner-writer {
   position: absolute;
-  bottom: -22px;
+  bottom: 24px;
   z-index: 1;
   pointer-events: none;
   width: 165px;
@@ -55,11 +55,11 @@ body {
 }
 
 .corner-writer-left {
-  left: -18px;
+  left: 24px;
 }
 
 .corner-writer-right {
-  right: -18px;
+  right: 24px;
 }
 
 @media (max-width: 900px) {
@@ -99,13 +99,13 @@ body {
 
 .header h1 {
   margin: 0;
-  font-size: 40px;
+  font-size: 42px;
   font-weight: 500;
 }
 
 .header p {
   margin-top: 12px;
-  font-size: 19px;
+  font-size: 20px;
   color: var(--soft-text);
 }
 
@@ -113,12 +113,11 @@ body {
   margin: 10px 0 0;
   font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting",
     "Snell Roundhand", "Apple Chancery", cursive;
-  font-size: 48px;
+  font-size: 64px;
   font-weight: bold;
   line-height: 1.15;
   color: var(--text);
   cursor: pointer;
-  text-align: center;
 }
 
 .header p.owner-name.owner-name-placeholder {
@@ -131,68 +130,132 @@ body {
   padding-bottom: 2px;
 }
 
+/* The photo sits to the LEFT of the name only — deliberately not centred
+   as its own element, so the row as a whole (photo + name) centres on the
+   page, and the name itself ends up a little right of true centre. That
+   asymmetry was explicitly signed off on rather than an oversight. */
 .owner-row {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 18px;
   margin-top: 6px;
 }
 
 .owner-text {
-  text-align: center;
+  text-align: left;
 }
 
 .owner-text .owner-name {
   margin-top: 0;
 }
 
-#titleHome {
-  cursor: pointer;
+.owner-photo-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
 }
 
-.hamburger-menu-button {
+.owner-photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--stone-dark);
+  box-shadow: 0 4px 14px rgba(70, 55, 35, 0.18);
+  cursor: pointer;
   display: block;
-  margin: 14px auto 0;
-  border: 1px solid #d8cbb8;
-  border-radius: 999px;
-  padding: 9px 20px;
-  background: var(--panel);
-  color: var(--text);
-  font-size: 16px;
-  font-family: inherit;
-  cursor: pointer;
 }
 
-.hamburger-menu-button:hover {
+.owner-photo-button {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 2px dashed var(--stone-dark);
+  background: var(--panel);
+  color: var(--soft-text);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.owner-photo-button:hover {
   background: var(--stone-light);
 }
 
-.menu-section-heading {
-  font-size: 20px;
-  font-weight: 500;
-  margin: 28px 0 12px;
-  color: var(--text);
+/* Once a real photo is set, the button shrinks to a small pencil-style
+   overlay in the corner (its placeholder "+" hides itself) — clicking it
+   still reopens the file picker to change the photo. The separate ×
+   button appears alongside it to remove the photo entirely. */
+.owner-photo-button.has-photo {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  top: auto;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  border: 2px solid var(--panel);
+  background: var(--stone);
 }
 
-.menu-section-heading:first-of-type {
-  margin-top: 4px;
-}
-
-.menu-section-buttons {
+.owner-photo-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  background: #d8746a;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
 }
 
-.menu-feedback-link {
-  display: inline-block;
-  text-decoration: none;
-  margin-top: 6px;
+.owner-photo-remove:hover {
+  background: #c65f55;
+}
+
+@media (max-width: 640px) {
+  .owner-row {
+    gap: 12px;
+  }
+
+  .owner-photo-wrap,
+  .owner-photo,
+  .owner-photo-button {
+    width: 56px;
+    height: 56px;
+  }
+
+  .owner-photo-button.has-photo {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .owner-photo-remove {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+  }
 }
 
 .header p.owner-subtitle {
   margin: 2px 0 0;
-  font-size: 24px;
+  font-size: 17px;
   font-style: italic;
   letter-spacing: 0.04em;
   color: var(--soft-text);
@@ -287,63 +350,6 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.50),
     inset 0 -9px 16px rgba(100, 92, 68, 0.14),
     0 3px 7px rgba(90, 84, 66, 0.13);
-}
-
-/* Hover a brick to see its custom title, or an invitation to add one —
-   larger size and font than a typical tooltip, so it's genuinely readable. */
-.brick-title-tooltip {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 10px);
-  transform: translateX(-50%) translateY(6px);
-  width: max-content;
-  min-width: 120%;
-  max-width: 260px;
-  background: var(--panel, #fffdf8);
-  color: var(--text);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.4;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid #d8cbb8;
-  box-shadow: 0 10px 26px rgba(60, 45, 20, 0.22);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms ease, transform 150ms ease;
-  white-space: normal;
-  text-align: center;
-  z-index: 6;
-}
-
-.brick-title-tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 7px solid transparent;
-  border-top-color: var(--panel, #fffdf8);
-}
-
-.brick:hover .brick-title-tooltip,
-.brick:focus-visible .brick-title-tooltip {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* The small red dot marking whichever brick was most recently opened —
-   so returning to the wall always shows at a glance where you left off. */
-.brick-last-used-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #d8746a;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
 }
 
 /* Procedural stone grain — two SVG noise filters layered together, not an
@@ -901,116 +907,6 @@ body {
 }
 
 .menu-item:hover {
-  background: var(--stone-light);
-}
-
-/* The seven action buttons spanning the wall's own width, replacing the
-   old footer — equal width, small gap, evenly spaced across exactly the
-   same horizontal space the bricks occupy. */
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: min(100%, 1260px);
-  max-width: 1260px;
-  margin: 0 auto 20px;
-  padding: 0 40px;
-}
-
-.action-button {
-  flex: 1 1 120px;
-  border: 1px solid #d8cbb8;
-  border-radius: 999px;
-  padding: 10px 8px;
-  background: var(--panel);
-  color: var(--text);
-  font-size: 15px;
-  font-family: inherit;
-  cursor: pointer;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.action-button:hover {
-  background: var(--stone-light);
-}
-
-@media (max-width: 760px) {
-  .action-row {
-    padding: 0 12px;
-  }
-
-  .action-button {
-    flex: 1 1 45%;
-    font-size: 14px;
-  }
-}
-
-/* The optional title fields on a year's own page, and on each individual
-   memory — plain inviting text fields matching the app's existing input
-   styling. */
-.year-title-input {
-  display: block;
-  width: 100%;
-  max-width: 520px;
-  margin: 4px auto 0;
-  padding: 12px 16px;
-  border: 1px solid #d8cbb8;
-  border-radius: 14px;
-  font-size: 20px;
-  font-family: Georgia, "Times New Roman", serif;
-  text-align: center;
-  background: #fffaf0;
-  color: var(--text);
-}
-
-.memory-title-input {
-  display: block;
-  width: 100%;
-  margin: 10px 0 14px;
-  padding: 10px 14px;
-  border: 1px solid #d8cbb8;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 500;
-  font-family: Georgia, "Times New Roman", serif;
-  background: #fffaf0;
-  color: var(--text);
-}
-
-.memory-card-title {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 19px;
-  font-weight: 500;
-  margin: 0 0 10px;
-  color: var(--text);
-}
-
-/* Edit/delete icon buttons on each memory card, replacing plain text
-   links — small, quiet, top-left corner. */
-.memory-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.memory-icon-button {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid #d8cbb8;
-  background: var(--panel);
-  color: var(--text);
-  font-size: 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.memory-icon-button:hover {
   background: var(--stone-light);
 }
 

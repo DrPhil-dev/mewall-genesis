@@ -9,9 +9,15 @@
 <body>
   <main class="app">
     <header class="header">
-      <h1 id="titleHome" title="Click to go to your Home Wall"><span id="titleText">My Life Wall</span></h1>
+      <h1>My Life Wall</h1>
 
       <div class="owner-row">
+        <div class="owner-photo-wrap">
+          <img id="ownerPhotoImg" class="owner-photo hidden" src="" alt="">
+          <button type="button" id="ownerPhotoButton" class="owner-photo-button" title="Click to add a photo"><span id="ownerPhotoPlaceholder">+</span></button>
+          <input type="file" id="ownerPhotoInput" accept="image/*" hidden>
+          <button type="button" id="ownerPhotoRemove" class="owner-photo-remove hidden" title="Remove this photo">&times;</button>
+        </div>
         <div class="owner-text">
           <p id="ownerName" class="owner-name"></p>
           <p id="ownerSubtitle" class="owner-subtitle hidden">a digital autobiography</p>
@@ -21,13 +27,13 @@
       <p>Every life has a story. This is mine.</p>
 
       <nav id="menuBar" class="menu-bar hidden" aria-label="Main menu">
+        <button type="button" class="menu-item" data-page="home">Home Wall</button>
         <button type="button" class="menu-item" data-page="pageNotes">Notes</button>
+        <button type="button" class="menu-item" data-page="pageContents">Contents</button>
         <button type="button" class="menu-item" data-page="pageWelcome">Welcome</button>
         <button type="button" class="menu-item" data-page="pageHowTo">How to use</button>
+        <button type="button" class="menu-item" data-page="pageFeatures">Features</button>
       </nav>
-
-      <button type="button" id="hamburgerMenuButton" class="hamburger-menu-button">&#9776; Menu</button>
-
     </header>
 
     <section id="pageNotes" class="info-page hidden">
@@ -63,7 +69,6 @@
       <h2>Welcome to My Life Wall</h2>
       <p>My Life Wall is a place to gather the story of a life, one year at a time. Each brick on the wall is a year. Some years hold many memories, some are still waiting for theirs.</p>
       <p>There is no right order and no deadline. Start with the years you remember most vividly and let the rest follow.</p>
-      <p>The Home Wall — a brick for every year of a life, coloured by whether it holds memories yet. The memory editor — write, dictate, or photograph your way through a year. The Life Book — the whole wall gathered into a printable book. Backups — export and import everything as a single file.</p>
       <p><em>(Placeholder content — final wording to come.)</em></p>
     </section>
 
@@ -73,24 +78,13 @@
       <p>Photos can be resized by dragging their corner handle, moved by dragging them, and given a caption by clicking just beneath them.</p>
       <p>Use "Export backup" regularly to keep a copy of everything safe, and "Create Life Book" to turn the whole wall into a printable book.</p>
       <p><strong>You must configure a backup for your files.</strong> At the moment, this is not a cloud storage app, and you are responsible for backing up the data My Life Wall creates. Use the "Export backup" button regularly, this saves everything as one file you can store safely elsewhere. After clicking it, look in your Downloads folder for a file called "MyLifeWall Backup.json", that's the one to move somewhere safe. If this browser or device is ever lost, reset, or replaced, that exported file is the only way to bring your stories back.</p>
-      <p><em>(A step-by-step guided tour is planned for this page but not yet built — placeholder content, final wording to come.)</em></p>
+      <p><em>(Placeholder content — final wording to come.)</em></p>
     </section>
 
-    <section id="pageMenu" class="info-page hidden">
-      <h2>Menu</h2>
-
-      <h3 class="menu-section-heading">Personal Details</h3>
-      <div class="menu-section-buttons">
-        <button type="button" id="menuChangeNameButton" class="voice-button">Change name</button>
-        <button type="button" id="menuChangeBirthDateButton" class="voice-button">Change date of birth</button>
-      </div>
-
-      <h3 class="menu-section-heading">Related Links</h3>
-      <p class="foreword-hint">(Placeholder — nothing here yet.)</p>
-
-      <h3 class="menu-section-heading">Feedback</h3>
-      <p class="foreword-hint">Spotted something, or have an idea? Let John know directly.</p>
-      <a href="mailto:john@example.com?subject=My%20Life%20Wall%20feedback" class="voice-button menu-feedback-link">&#9993; Email feedback to John</a>
+    <section id="pageFeatures" class="info-page hidden">
+      <h2>Features in this app</h2>
+      <p>The Home Wall — a brick for every year of a life, coloured by whether it holds memories yet. The memory editor — write, dictate, or photograph your way through a year. The Life Book — the whole wall gathered into a printable book. Backups — export and import everything as a single file.</p>
+      <p><em>(Placeholder content — final wording to come.)</em></p>
     </section>
 
     <section id="setupView" class="setup-view hidden">
@@ -104,28 +98,6 @@
 
       <button id="startButton" class="keep-button">Begin</button>
     </section>
-
-    <section id="pageBookCover" class="info-page hidden">
-      <h2>Book Cover</h2>
-      <p class="foreword-hint">What should the cover of your printed Life Book say? Leave a field blank to use the default.</p>
-      <p>Cover title</p>
-      <input id="bookCoverTitleInput" type="text" placeholder="My Life Wall" />
-      <p>Cover subtitle</p>
-      <input id="bookCoverSubtitleInput" type="text" placeholder="a digital autobiography" />
-      <button id="saveBookCoverButton" class="keep-button">Save cover details</button>
-      <p id="bookCoverStatus" class="foreword-status hidden">Saved.</p>
-    </section>
-
-    <nav class="action-row" aria-label="Backup and book actions">
-      <button type="button" id="actionImportBackup" class="action-button">Import backup</button>
-      <button type="button" id="actionExportBackup" class="action-button">Export backup</button>
-      <button type="button" id="actionForeword" class="action-button">Foreword</button>
-      <button type="button" id="actionContents" class="action-button">Contents</button>
-      <button type="button" id="actionAfterword" class="action-button">Afterword</button>
-      <button type="button" id="actionCreateBook" class="action-button">Create a Book</button>
-      <button type="button" id="actionBookCover" class="action-button">Book Cover</button>
-      <input id="importInput" type="file" accept="application/json" hidden />
-    </nav>
 
     <div class="wall-stage">
       <section id="wall" class="wall hidden" aria-label="Home Wall"></section>
@@ -151,8 +123,6 @@
         <p id="yearAge"></p>
       </div>
 
-      <input id="yearCustomTitleInput" type="text" class="year-title-input" placeholder="Give this year a title (optional)">
-
       <div class="year-invitation">
         <p>Every year has a story.</p>
         <p>What do you remember about this year?</p>
@@ -168,7 +138,6 @@
 
       <div id="memoryEditor" class="memory-box hidden">
         <label>Tell this year about something you remember...</label>
-        <input id="memoryTitleInput" type="text" class="memory-title-input" placeholder="Add a title to this memory">
 
         <div class="voice-actions">
           <button id="recordAudioButton" class="voice-button record-button"><span class="mic-icon">🎙️</span> Record memory</button>
@@ -232,6 +201,13 @@
       </div>
     </section>
 
+    <footer id="lifeTools" class="life-tools hidden">
+      <button id="changeNameButton">Change name</button>
+      <button id="exportButton">Export backup</button>
+      <label for="importInput" class="import-label">Import backup</label>
+      <input id="importInput" type="file" accept="application/json" hidden />
+      <button id="lifeBookButton">Create Life Book</button>
+    </footer>
     <div id="scrollJump" class="scroll-jump hidden" aria-hidden="false">
       <button id="jumpTopButton" class="scroll-jump-button" title="Jump to top" aria-label="Jump to top">↑</button>
       <button id="jumpBottomButton" class="scroll-jump-button" title="Jump to bottom" aria-label="Jump to bottom">↓</button>

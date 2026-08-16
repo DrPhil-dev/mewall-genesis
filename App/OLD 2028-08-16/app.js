@@ -403,7 +403,11 @@ const nameInput = document.getElementById("nameInput");
 const birthDateInput = document.getElementById("birthDateInput");
 const ownerName = document.getElementById("ownerName");
 const ownerSubtitle = document.getElementById("ownerSubtitle");
-const titleHome = document.getElementById("titleHome");
+const ownerPhotoButton = document.getElementById("ownerPhotoButton");
+const ownerPhotoImg = document.getElementById("ownerPhotoImg");
+const ownerPhotoPlaceholder = document.getElementById("ownerPhotoPlaceholder");
+const ownerPhotoInput = document.getElementById("ownerPhotoInput");
+const ownerPhotoRemove = document.getElementById("ownerPhotoRemove");
 const startButton = document.getElementById("startButton");
 
 const wall = document.getElementById("wall");
@@ -411,14 +415,12 @@ const menuBar = document.getElementById("menuBar");
 const yearView = document.getElementById("yearView");
 const yearTitle = document.getElementById("yearTitle");
 const yearAge = document.getElementById("yearAge");
-const yearCustomTitleInput = document.getElementById("yearCustomTitleInput");
 const backButton = document.getElementById("backButton");
 
 const keepMemoryButton = document.getElementById("keepMemoryButton");
 const showEditorButton = document.getElementById("showEditorButton");
 const cancelMemoryButton = document.getElementById("cancelMemoryButton");
 const memoryEditor = document.getElementById("memoryEditor");
-const memoryTitleInput = document.getElementById("memoryTitleInput");
 const memoryList = document.getElementById("memoryList");
 const memoriesHeading = document.getElementById("memoriesHeading");
 const forewordText = document.getElementById("forewordText");
@@ -441,18 +443,11 @@ const mediumPhotoButton = document.getElementById("mediumPhotoButton");
 const largePhotoButton = document.getElementById("largePhotoButton");
 const removePhotoButton = document.getElementById("removePhotoButton");
 
+const lifeTools = document.getElementById("lifeTools");
+const exportButton = document.getElementById("exportButton");
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
-
-const actionImportBackup = document.getElementById("actionImportBackup");
-const actionExportBackup = document.getElementById("actionExportBackup");
-const actionForeword = document.getElementById("actionForeword");
-const actionContents = document.getElementById("actionContents");
-const actionAfterword = document.getElementById("actionAfterword");
-const actionCreateBook = document.getElementById("actionCreateBook");
-const actionBookCover = document.getElementById("actionBookCover");
-
-const hamburgerMenuButton = document.getElementById("hamburgerMenuButton");
+const lifeBookButton = document.getElementById("lifeBookButton");
 
 function setupEditor() {
   editor = new Editor({
@@ -670,7 +665,7 @@ function showWall() {
   yearView.classList.add("hidden");
   hideInfoPages();
   wall.classList.remove("hidden");
-  document.querySelector(".action-row").classList.remove("hidden");
+  lifeTools.classList.remove("hidden");
   menuBar.classList.remove("hidden");
   updateOwnerHeader();
   createWall();
@@ -693,6 +688,51 @@ function updateOwnerHeader() {
     ownerSubtitle.classList.add("hidden");
   }
   ownerName.title = "Click to change the name on this Life Wall";
+  updateOwnerPhoto();
+}
+
+const AVATAR_MAX_DIMENSION = 480;
+
+function updateOwnerPhoto() {
+  if (settings.ownerPhoto) {
+    ownerPhotoImg.src = settings.ownerPhoto;
+    ownerPhotoImg.classList.remove("hidden");
+    ownerPhotoPlaceholder.classList.add("hidden");
+    ownerPhotoButton.classList.add("has-photo");
+    ownerPhotoButton.title = "Click to change this photo";
+    ownerPhotoRemove.classList.remove("hidden");
+  } else {
+    ownerPhotoImg.classList.add("hidden");
+    ownerPhotoImg.removeAttribute("src");
+    ownerPhotoPlaceholder.classList.remove("hidden");
+    ownerPhotoButton.classList.remove("has-photo");
+    ownerPhotoButton.title = "Click to add a photo";
+    ownerPhotoRemove.classList.add("hidden");
+  }
+}
+
+function setOwnerPhoto(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+
+  // A small avatar never needs to be as large as a memory photo — a
+  // smaller max dimension keeps it light without any visible loss at the
+  // size it's actually displayed.
+  compressImageFile(file, AVATAR_MAX_DIMENSION)
+    .then(dataUrl => {
+      settings.ownerPhoto = dataUrl;
+      saveSettings();
+      updateOwnerPhoto();
+    })
+    .catch(error => {
+      console.error("Could not add photo:", error);
+      alert("That photo couldn't be added. Please try a different one.");
+    });
+}
+
+function removeOwnerPhoto() {
+  settings.ownerPhoto = null;
+  saveSettings();
+  updateOwnerPhoto();
 }
 
 function changeName() {
@@ -707,24 +747,6 @@ function changeName() {
   updateOwnerHeader();
 }
 
-function changeBirthDate() {
-  const entered = prompt(
-    "Date of birth (YYYY-MM-DD)?",
-    settings.birthDate || ""
-  );
-  if (entered === null) return; // cancelled
-
-  const parsed = new Date(entered);
-  if (!entered.trim() || isNaN(parsed.getTime())) {
-    alert("Please enter a valid date in YYYY-MM-DD format.");
-    return;
-  }
-
-  settings.birthDate = entered.trim();
-  settings.birthYear = parsed.getFullYear();
-  saveSettings();
-}
-
 function hideInfoPages() {
   document.querySelectorAll(".info-page").forEach(page => page.classList.add("hidden"));
 }
@@ -733,7 +755,7 @@ function showInfoPage(pageId) {
   setupView.classList.add("hidden");
   yearView.classList.add("hidden");
   wall.classList.add("hidden");
-  document.querySelector(".action-row").classList.add("hidden");
+  lifeTools.classList.add("hidden");
   hideInfoPages();
   setHomeArtVisible(false);
   const page = document.getElementById(pageId);
@@ -757,12 +779,6 @@ function showInfoPage(pageId) {
 
   if (pageId === "pageContents") {
     renderContentsPage();
-  }
-
-  if (pageId === "pageBookCover") {
-    document.getElementById("bookCoverTitleInput").value = settings.bookCoverTitle || "";
-    document.getElementById("bookCoverSubtitleInput").value = settings.bookCoverSubtitle || "";
-    document.getElementById("bookCoverStatus").classList.add("hidden");
   }
 }
 
@@ -896,6 +912,8 @@ function createWall() {
   const futureHorizon = birthYear + 99;
   const { bricksPerRow, staggerBricksPerRow, staggerOffset } = getWallLayout();
 
+  wall.appendChild(createEdgeBrickRow("forewordBrick", "Foreword", "pageForeword", settings.foreword));
+
   let year = birthYear;
   let rowIndex = 0;
 
@@ -920,6 +938,29 @@ function createWall() {
     wall.appendChild(row);
     rowIndex++;
   }
+
+  wall.appendChild(createEdgeBrickRow("afterwordBrick", "Afterword", "pageAfterword", settings.afterword));
+}
+
+// Foreword/Afterword now live inside the wall's own frame, as a small
+// (roughly 3.5-brick-wide) centred brick occupying a full row to itself —
+// not a separate element floating outside the wall. Rebuilt fresh every
+// time createWall() runs, so the glow always reflects current settings
+// without needing to be updated separately elsewhere.
+function createEdgeBrickRow(id, label, pageId, content) {
+  const row = document.createElement("div");
+  row.className = "brick-row edge-brick-row";
+
+  const brick = document.createElement("button");
+  brick.type = "button";
+  brick.id = id;
+  brick.className = "edge-brick";
+  if (content && content.trim()) brick.classList.add("has-content");
+  brick.textContent = label;
+  brick.addEventListener("click", () => showInfoPage(pageId));
+
+  row.appendChild(brick);
+  return row;
 }
 
 // Rebuild the wall if the window is resized while it's visible, so the
@@ -930,11 +971,6 @@ window.addEventListener("resize", () => {
   clearTimeout(wallResizeTimeout);
   wallResizeTimeout = setTimeout(createWall, 150);
 });
-
-function getYearTitle(year) {
-  const custom = settings.yearTitles && settings.yearTitles[year];
-  return custom && custom.trim() ? custom.trim() : "";
-}
 
 function createBrick(year, age) {
   const brick = document.createElement("button");
@@ -947,14 +983,9 @@ function createBrick(year, age) {
     brick.classList.add("has-memories");
   }
 
-  const customTitle = getYearTitle(year);
-  const tooltipText = customTitle || "Give this year a title (optional)";
-
   brick.innerHTML = `
     <span class="year">${year}</span>
     <span class="age">Age ${age}</span>
-    <span class="brick-title-tooltip" role="tooltip">${escapeHtml(tooltipText)}</span>
-    ${settings.lastUsedYear === year ? '<span class="brick-last-used-dot" aria-hidden="true"></span>' : ""}
   `;
 
   brick.addEventListener("click", () => openYear(year, age));
@@ -974,20 +1005,13 @@ function openYear(year, age) {
 
   yearTitle.textContent = `${year}`;
   yearAge.textContent = `Age ${age}`;
-  yearCustomTitleInput.value = getYearTitle(year);
 
   editor.commands.clearContent();
-  memoryTitleInput.value = "";
   keepMemoryButton.textContent = "Keep memory";
 
   renderMemories();
 
   updateScrollJumpVisibility();
-
-  // Marks this brick with the small red dot next time the wall renders,
-  // so returning to it always shows at a glance where you left off.
-  settings.lastUsedYear = year;
-  saveSettings();
 
   // If nothing has been remembered from this year yet, skip the empty-state
   // messaging and go straight to the entry field — no point making people
@@ -1001,7 +1025,6 @@ function openYear(year, age) {
 function showEditor() {
   editingMemoryIndex = null;
   editor.commands.clearContent();
-  memoryTitleInput.value = "";
   lastSelectedImagePos = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.remove("hidden");
@@ -1013,7 +1036,6 @@ async function keepMemory() {
   const html = editor.getHTML();
   const plainText = editor.getText().trim();
   const hasImage = html.includes("<img");
-  const title = memoryTitleInput.value.trim();
 
   if (!plainText && !hasImage) {
     alert("Write something or add a photo before keeping this memory.");
@@ -1032,13 +1054,11 @@ async function keepMemory() {
   if (editingMemoryIndex !== null) {
     memories[selectedYear][editingMemoryIndex].html = html;
     memories[selectedYear][editingMemoryIndex].text = plainText;
-    memories[selectedYear][editingMemoryIndex].title = title;
     memories[selectedYear][editingMemoryIndex].updatedAt = new Date().toISOString();
   } else {
     memories[selectedYear].push({
       html,
       text: plainText,
-      title,
       createdAt: new Date().toISOString(),
       updatedAt: null
     });
@@ -1063,7 +1083,6 @@ async function keepMemory() {
   }
 
   editor.commands.clearContent();
-  memoryTitleInput.value = "";
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
@@ -1077,7 +1096,6 @@ function editMemory(index) {
 
   editingMemoryIndex = index;
   editor.commands.setContent(memory.html || `<p>${escapeHtml(memory.text || "")}</p>`);
-  memoryTitleInput.value = memory.title || "";
   lastSelectedImagePos = null;
   ensureEditableEdges();
   keepMemoryButton.textContent = "Update memory";
@@ -1147,13 +1165,12 @@ function renderMemories() {
       : `<p>${escapeHtml(memory.text || "")}</p>`;
 
     card.innerHTML = `
-      <div class="memory-actions">
-        <button type="button" class="memory-icon-button" data-action="edit" data-index="${index}" title="Edit this memory">&#9998;</button>
-        <button type="button" class="memory-icon-button" data-action="delete" data-index="${index}" title="Delete this memory">&#128465;</button>
-      </div>
-      ${memory.title ? `<h4 class="memory-card-title">${escapeHtml(memory.title)}</h4>` : ""}
       <div class="memory-content">${content}</div>
       <small>${dateText}</small>
+      <div class="memory-actions">
+        <button type="button" data-action="edit" data-index="${index}">Edit</button>
+        <button type="button" data-action="delete" data-index="${index}">Delete</button>
+      </div>
     `;
 
     memoryList.appendChild(card);
@@ -1613,8 +1630,8 @@ function createLifeBook() {
 
       <section class="title-page">
         <h1>${escapeHtml(owner)}</h1>
-        <p>${escapeHtml(settings.bookCoverTitle && settings.bookCoverTitle.trim() ? settings.bookCoverTitle.trim() : "My Life Wall")}</p>
-        <p>${escapeHtml(settings.bookCoverSubtitle && settings.bookCoverSubtitle.trim() ? settings.bookCoverSubtitle.trim() : "Every life has a story. This is mine.")}</p>
+        <p>My Life Wall</p>
+        <p>Every life has a story. This is mine.</p>
       </section>
   `;
 
@@ -1725,7 +1742,7 @@ async function resetMeWall() {
 
   wall.classList.add("hidden");
   yearView.classList.add("hidden");
-  document.querySelector(".action-row").classList.add("hidden");
+  lifeTools.classList.add("hidden");
   setHomeArtVisible(false);
   setupView.classList.remove("hidden");
 }
@@ -1873,6 +1890,8 @@ startButton.addEventListener("click", startMeWall);
 backButton.addEventListener("click", showWall);
 showEditorButton.addEventListener("click", showEditor);
 
+document.getElementById("changeNameButton").addEventListener("click", changeName);
+
 // The foreword lives in settings, so it's automatically included in
 // export/import backups alongside the name and birth date. Its brick
 // glow updates itself next time the wall renders — no need to touch it
@@ -1911,49 +1930,20 @@ ownerName.addEventListener("click", () => {
   if (settings.birthYear) changeName();
 });
 
-// A year's own title works the same way as Notes — saves itself a
-// moment after typing stops.
-let yearTitleSaveTimeout = null;
-yearCustomTitleInput.addEventListener("input", () => {
-  clearTimeout(yearTitleSaveTimeout);
-  yearTitleSaveTimeout = setTimeout(() => {
-    if (selectedYear === null) return;
-    if (!settings.yearTitles) settings.yearTitles = {};
-    settings.yearTitles[selectedYear] = yearCustomTitleInput.value.trim();
-    saveSettings();
-  }, 600);
+ownerPhotoButton.addEventListener("click", () => ownerPhotoInput.click());
+
+ownerPhotoImg.addEventListener("click", () => ownerPhotoInput.click());
+
+ownerPhotoInput.addEventListener("change", event => {
+  const file = event.target.files[0];
+  setOwnerPhoto(file);
+  ownerPhotoInput.value = "";
 });
 
-ownerName.addEventListener("click", () => {
-  // Only meaningful once a wall exists — on the setup screen the name
-  // field is right there anyway.
-  if (settings.birthYear) changeName();
-});
-
-titleHome.addEventListener("click", () => {
-  if (settings.birthYear) showWall();
-});
-
-hamburgerMenuButton.addEventListener("click", () => showInfoPage("pageMenu"));
-
-document.getElementById("menuChangeNameButton").addEventListener("click", changeName);
-document.getElementById("menuChangeBirthDateButton").addEventListener("click", changeBirthDate);
-
-actionImportBackup.addEventListener("click", () => importInput.click());
-actionExportBackup.addEventListener("click", exportLife);
-actionForeword.addEventListener("click", () => showInfoPage("pageForeword"));
-actionContents.addEventListener("click", () => showInfoPage("pageContents"));
-actionAfterword.addEventListener("click", () => showInfoPage("pageAfterword"));
-actionCreateBook.addEventListener("click", createLifeBook);
-actionBookCover.addEventListener("click", () => showInfoPage("pageBookCover"));
-
-document.getElementById("saveBookCoverButton").addEventListener("click", () => {
-  settings.bookCoverTitle = document.getElementById("bookCoverTitleInput").value.trim();
-  settings.bookCoverSubtitle = document.getElementById("bookCoverSubtitleInput").value.trim();
-  saveSettings();
-  const status = document.getElementById("bookCoverStatus");
-  status.classList.remove("hidden");
-  setTimeout(() => status.classList.add("hidden"), 2500);
+ownerPhotoRemove.addEventListener("click", event => {
+  event.stopPropagation();
+  const confirmed = confirm("Remove this photo?");
+  if (confirmed) removeOwnerPhoto();
 });
 
 // Jump-to-top / jump-to-bottom buttons for long story pages. Wired
@@ -2010,7 +2000,6 @@ menuBar.addEventListener("click", event => {
 
 cancelMemoryButton.addEventListener("click", () => {
   editor.commands.clearContent();
-  memoryTitleInput.value = "";
   editingMemoryIndex = null;
   keepMemoryButton.textContent = "Keep memory";
   memoryEditor.classList.add("hidden");
@@ -2044,10 +2033,15 @@ mediumPhotoButton.addEventListener("click", () => setPhotoSize("60%"));
 largePhotoButton.addEventListener("click", () => setPhotoSize("100%"));
 removePhotoButton.addEventListener("click", removePhoto);
 
+exportButton.addEventListener("click", exportLife);
 importInput.addEventListener("change", importLife);
 
 if (resetButton) {
   resetButton.addEventListener("click", resetMeWall);
+}
+
+if (lifeBookButton) {
+  lifeBookButton.addEventListener("click", createLifeBook);
 }
 
 initialise();
