@@ -976,6 +976,19 @@ body {
   background: var(--stone-light);
 }
 
+/* Client feedback: Export backup needs to stand out from the rest of the
+   action row, since it's the one action that protects the user's data. */
+.action-button-export {
+  background: #b3413e;
+  border-color: #8f2f2d;
+  color: #fff8f2;
+  font-weight: 600;
+}
+
+.action-button-export:hover {
+  background: #9c3532;
+}
+
 @media (max-width: 760px) {
   .action-row {
     padding: 0 12px;
