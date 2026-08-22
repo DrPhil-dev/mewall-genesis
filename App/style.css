@@ -977,16 +977,19 @@ body {
 }
 
 /* Client feedback: Export backup needs to stand out from the rest of the
-   action row, since it's the one action that protects the user's data. */
+   action row, since it's the one action that protects the user's data.
+   Green rather than red — red reads as "destructive/stop" and Oren found
+   that made people hesitant to click it, when backing up is the opposite
+   of dangerous. */
 .action-button-export {
-  background: #b3413e;
-  border-color: #8f2f2d;
-  color: #fff8f2;
+  background: #4f7a52;
+  border-color: #3a5c3d;
+  color: #f8fbf3;
   font-weight: 600;
 }
 
 .action-button-export:hover {
-  background: #9c3532;
+  background: #3f6342;
 }
 
 @media (max-width: 760px) {
