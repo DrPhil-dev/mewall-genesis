@@ -393,7 +393,6 @@ const DEFAULT_PHOTO_WIDTH = "35%";
 let settings = loadSettings();
 let memories = {};
 let selectedYear = null;
-let editingMemoryIndex = null;
 let mediaRecorder = null;
 let audioChunks = [];
 let editor = null;
@@ -414,11 +413,7 @@ const yearAge = document.getElementById("yearAge");
 const yearCustomTitleInput = document.getElementById("yearCustomTitleInput");
 const backButton = document.getElementById("backButton");
 
-const keepMemoryButton = document.getElementById("keepMemoryButton");
 const showEditorButton = document.getElementById("showEditorButton");
-const cancelMemoryButton = document.getElementById("cancelMemoryButton");
-const memoryEditor = document.getElementById("memoryEditor");
-const memoryTitleInput = document.getElementById("memoryTitleInput");
 const memoryList = document.getElementById("memoryList");
 const forewordText = document.getElementById("forewordText");
 const forewordStatus = document.getElementById("forewordStatus");
@@ -440,6 +435,11 @@ const mediumPhotoButton = document.getElementById("mediumPhotoButton");
 const largePhotoButton = document.getElementById("largePhotoButton");
 const removePhotoButton = document.getElementById("removePhotoButton");
 
+const floatColLeft = document.getElementById("floatColLeft");
+const floatColRight = document.getElementById("floatColRight");
+const textStyleButton = document.getElementById("textStyleButton");
+const textStylePanel = document.getElementById("textStylePanel");
+
 const importInput = document.getElementById("importInput");
 const resetButton = document.getElementById("resetButton");
 
@@ -453,9 +453,18 @@ const actionBookCover = document.getElementById("actionBookCover");
 
 const hamburgerMenuButton = document.getElementById("hamburgerMenuButton");
 
-function setupEditor() {
-  editor = new Editor({
-    element: document.querySelector("#tipTapEditor"),
+// A factory rather than a single instance — every memory now has its
+// own permanently-live editor (no separate edit/read mode), so this
+// gets called once per memory card. All of them share the same
+// extensions and image/paste/drop handling.
+//
+// `editor` (declared near the top of this file) always points at
+// whichever instance was most recently focused — that's what the
+// floating formatting column acts on, and what insertPhoto/setPhotoSize/
+// removePhoto default to when called without an explicit target.
+function createMemoryEditor(container) {
+  const instance = new Editor({
+    element: container,
     extensions: [
       // Dropcursor only reacts to native HTML5 drag events. Since photo
       // moving is now handled entirely by our own pointer tracking (see
@@ -501,7 +510,7 @@ function setupEditor() {
 
         if (image) {
           event.preventDefault();
-          insertPhoto(image);
+          insertPhoto(image, instance);
           return true;
         }
 
@@ -515,7 +524,7 @@ function setupEditor() {
         if (imageItem) {
           const file = imageItem.getAsFile();
           event.preventDefault();
-          insertPhoto(file);
+          insertPhoto(file, instance);
           return true;
         }
 
@@ -524,24 +533,58 @@ function setupEditor() {
     }
   });
 
-  setupFormatToolbar();
+  // Focusing a DIFFERENT memory makes it "the" active editor for the
+  // floating toolbar, and clears the tracked photo position — a tracked
+  // position is just a number, meaningless once you've moved to a
+  // different memory's document. But focus fires again on THIS SAME
+  // instance too, every time a formatting button briefly hands focus to
+  // itself and calls .focus() to hand it back — clearing the position
+  // on every one of those was the actual bug (photo size buttons losing
+  // the selection after a single click). Only clear it on a genuine
+  // switch to a different memory.
+  instance.on("focus", () => {
+    if (editor !== instance) {
+      lastSelectedImagePos = null;
+    }
+    editor = instance;
+    updateFloatColumns();
+    syncFormatToolbar();
+  });
+
+  instance.on("selectionUpdate", () => {
+    if (editor === instance) syncFormatToolbar();
+  });
+
+  return instance;
+}
+
+function setupEditor() {
+  wireFormatToolbarButtons();
 }
 
 // The Notepad-style formatting bar: paragraph/heading dropdown, bold,
 // italic, strikethrough, and a font dropdown limited to fonts that ship
 // with every mainstream device — no external font loading.
-function setupFormatToolbar() {
-  const headingSelect = document.getElementById("headingSelect");
-  const fontSelect = document.getElementById("fontSelect");
-  const sizeSelect = document.getElementById("sizeSelect");
-  const boldButton = document.getElementById("boldButton");
-  const italicButton = document.getElementById("italicButton");
-  const strikeButton = document.getElementById("strikeButton");
-  const linkButton = document.getElementById("linkButton");
-  const alignLeftButton = document.getElementById("alignLeftButton");
-  const alignCenterButton = document.getElementById("alignCenterButton");
-  const alignRightButton = document.getElementById("alignRightButton");
-  const alignJustifyButton = document.getElementById("alignJustifyButton");
+//
+// Wired up ONCE — these buttons act on whichever memory's editor is
+// currently active (the shared "editor" variable), not on a specific
+// instance, since every memory can be edited at any time now.
+let headingSelect, fontSelect, sizeSelect, boldButton, italicButton,
+    strikeButton, linkButton, alignLeftButton, alignCenterButton,
+    alignRightButton, alignJustifyButton;
+
+function wireFormatToolbarButtons() {
+  headingSelect = document.getElementById("headingSelect");
+  fontSelect = document.getElementById("fontSelect");
+  sizeSelect = document.getElementById("sizeSelect");
+  boldButton = document.getElementById("boldButton");
+  italicButton = document.getElementById("italicButton");
+  strikeButton = document.getElementById("strikeButton");
+  linkButton = document.getElementById("linkButton");
+  alignLeftButton = document.getElementById("alignLeftButton");
+  alignCenterButton = document.getElementById("alignCenterButton");
+  alignRightButton = document.getElementById("alignRightButton");
+  alignJustifyButton = document.getElementById("alignJustifyButton");
 
   if (!headingSelect) return;
 
@@ -599,39 +642,43 @@ function setupFormatToolbar() {
 
     editor.chain().focus().setLink({ href: url.trim() }).run();
   });
+}
 
-  // Keep the dropdowns and button states matching wherever the cursor is.
-  editor.on("selectionUpdate", () => {
-    if (editor.isActive("heading", { level: 1 })) headingSelect.value = "1";
-    else if (editor.isActive("heading", { level: 2 })) headingSelect.value = "2";
-    else if (editor.isActive("heading", { level: 3 })) headingSelect.value = "3";
-    else headingSelect.value = "p";
+// Keeps the dropdowns and button states matching wherever the cursor
+// currently is, in whichever memory is active. Called from each
+// instance's own focus/selectionUpdate listeners (see
+// createMemoryEditor), rather than bound to one instance the way it
+// used to be.
+function syncFormatToolbar() {
+  if (!editor || !headingSelect) return;
 
-    const currentFont = editor.getAttributes("textStyle").fontFamily || "";
-    fontSelect.value = currentFont;
+  if (editor.isActive("heading", { level: 1 })) headingSelect.value = "1";
+  else if (editor.isActive("heading", { level: 2 })) headingSelect.value = "2";
+  else if (editor.isActive("heading", { level: 3 })) headingSelect.value = "3";
+  else headingSelect.value = "p";
 
-    const currentSize = editor.getAttributes("textStyle").fontSize || "";
-    sizeSelect.value = currentSize;
+  const currentFont = editor.getAttributes("textStyle").fontFamily || "";
+  fontSelect.value = currentFont;
 
-    boldButton.classList.toggle("is-active", editor.isActive("bold"));
-    italicButton.classList.toggle("is-active", editor.isActive("italic"));
-    strikeButton.classList.toggle("is-active", editor.isActive("strike"));
-    linkButton.classList.toggle("is-active", editor.isActive("link"));
+  const currentSize = editor.getAttributes("textStyle").fontSize || "";
+  sizeSelect.value = currentSize;
+  boldButton.classList.toggle("is-active", editor.isActive("bold"));
+  italicButton.classList.toggle("is-active", editor.isActive("italic"));
+  strikeButton.classList.toggle("is-active", editor.isActive("strike"));
+  linkButton.classList.toggle("is-active", editor.isActive("link"));
 
-    alignLeftButton.classList.toggle("is-active", editor.isActive({ textAlign: "left" }));
-    alignCenterButton.classList.toggle("is-active", editor.isActive({ textAlign: "center" }));
-    alignRightButton.classList.toggle("is-active", editor.isActive({ textAlign: "right" }));
-    alignJustifyButton.classList.toggle("is-active", editor.isActive({ textAlign: "justify" }));
+  alignLeftButton.classList.toggle("is-active", editor.isActive({ textAlign: "left" }));
+  alignCenterButton.classList.toggle("is-active", editor.isActive({ textAlign: "center" }));
+  alignRightButton.classList.toggle("is-active", editor.isActive({ textAlign: "right" }));
+  alignJustifyButton.classList.toggle("is-active", editor.isActive({ textAlign: "justify" }));
 
-    // Deliberately NOT clearing lastSelectedImagePos here based on the
-    // editor's own selection state. It's set directly by the photo's own
-    // pointerdown handler, which is the reliable part — ProseMirror's own
-    // click-to-select doesn't always land cleanly as a NodeSelection on
-    // the image (this was the actual bug: clearing on that ever *not*
-    // being true wiped out a perfectly good tracked position). The only
-    // time this needs resetting is switching to a different memory
-    // entirely, which showEditor()/editMemory() already handle directly.
-  });
+  // Deliberately NOT clearing lastSelectedImagePos here based on the
+  // editor's own selection state. It's set directly by the photo's own
+  // pointerdown handler, which is the reliable part — ProseMirror's own
+  // click-to-select doesn't always land cleanly as a NodeSelection on
+  // the image (this was the actual bug: clearing on that ever *not*
+  // being true wiped out a perfectly good tracked position). It's reset
+  // on focus moving to a different memory instead (see createMemoryEditor).
 }
 
 async function initialise() {
@@ -1061,131 +1108,71 @@ function positionBrickTooltip(brick) {
   brick.classList.toggle("tooltip-below", spaceAbove < neededSpace);
 }
 
+// Every card currently on screen keeps its own live editor instance
+// here, keyed by the memory object itself (not by array index, since
+// deleting one shifts everything after it). Used to destroy instances
+// cleanly whenever the list is re-rendered or a memory is removed.
+let activeCardEditors = new Map();
+
+// A brand-new memory being written is NOT added to memories[selectedYear]
+// (and so isn't saved) until it actually has content — an empty draft
+// abandoned by leaving the year just disappears, the same as never
+// having clicked "Record another memory" at all.
+let draftMemory = null;
+
+function destroyCardEditors() {
+  activeCardEditors.forEach(instance => instance.destroy());
+  activeCardEditors.clear();
+}
+
 function openYear(year, age) {
   selectedYear = year;
-  editingMemoryIndex = null;
+  draftMemory = null;
 
   wall.classList.add("hidden");
   yearView.classList.remove("hidden");
-  memoryEditor.classList.add("hidden");
   hideInfoPages();
   setWallExtrasVisible(false);
   document.getElementById("infoBackButton").classList.add("hidden");
   setHomeArtVisible(false);
 
-  yearTitle.textContent = `Memories: ${year}`;
+  yearTitle.textContent = `${year}`;
   yearAge.textContent = `– Age ${age}`;
   yearCustomTitleInput.value = getYearTitle(year);
 
-  editor.commands.clearContent();
-  memoryTitleInput.value = "";
-  keepMemoryButton.textContent = "Keep memory";
-
   renderMemories();
-
-  updateScrollJumpVisibility();
+  updateFloatColumns();
 
   // Marks this brick with the small red dot next time the wall renders,
   // so returning to it always shows at a glance where you left off.
   settings.lastUsedYear = year;
   saveSettings();
-
-  // If nothing has been remembered from this year yet, skip the empty-state
-  // messaging and go straight to the entry field — no point making people
-  // click through "Record your first memory" to reach an obvious next step.
-  const yearMemories = memories[selectedYear] || [];
-  if (yearMemories.length === 0) {
-    showEditor();
-  }
 }
 
-function showEditor() {
-  editingMemoryIndex = null;
-  editor.commands.clearContent();
-  memoryTitleInput.value = "";
-  lastSelectedImagePos = null;
-  keepMemoryButton.textContent = "Keep memory";
-  memoryEditor.classList.remove("hidden");
-  showEditorButton.classList.add("hidden");
-  editor.commands.focus();
-}
-
-async function keepMemory() {
-  const html = editor.getHTML();
-  const plainText = editor.getText().trim();
-  const hasImage = html.includes("<img");
-  const title = memoryTitleInput.value.trim();
-
-  if (!plainText && !hasImage) {
-    alert("Write something or add a photo before keeping this memory.");
+// Adds a new, immediately-editable memory card at the top of the list —
+// this is the only entry point for starting a new memory now, replacing
+// the old "Record another memory" reveal-an-editor-box step.
+function addNewMemoryCard() {
+  // Already got an empty draft sitting there unwritten — just take the
+  // person back to it rather than stacking up a second blank one.
+  if (draftMemory && !draftMemory.text && !draftMemory.html?.includes("<img")) {
+    const existing = activeCardEditors.get(draftMemory);
+    if (existing) existing.commands.focus();
     return;
   }
 
-  if (selectedYear === null) return;
-
-  if (!memories[selectedYear]) {
-    memories[selectedYear] = [];
-  }
-
-  const isNewEntry = editingMemoryIndex === null;
-  const previousEntry = isNewEntry ? null : { ...memories[selectedYear][editingMemoryIndex] };
-
-  if (editingMemoryIndex !== null) {
-    memories[selectedYear][editingMemoryIndex].html = html;
-    memories[selectedYear][editingMemoryIndex].text = plainText;
-    memories[selectedYear][editingMemoryIndex].title = title;
-    memories[selectedYear][editingMemoryIndex].updatedAt = new Date().toISOString();
-  } else {
-    memories[selectedYear].push({
-      html,
-      text: plainText,
-      title,
-      createdAt: new Date().toISOString(),
-      updatedAt: null
-    });
-  }
-
-  if (!(await saveMemories())) {
-    // Undo the in-memory change so it matches what's actually stored,
-    // rather than looking saved when it isn't.
-    if (isNewEntry) {
-      memories[selectedYear].pop();
-      if (memories[selectedYear].length === 0) delete memories[selectedYear];
-    } else if (previousEntry) {
-      memories[selectedYear][editingMemoryIndex] = previousEntry;
-    }
-
-    alert(
-      "This memory couldn't be saved — this device may be out of storage space. " +
-      "Try removing or shrinking the photo, freeing up space on the device, " +
-      "then keep the memory again."
-    );
-    return;
-  }
-
-  editor.commands.clearContent();
-  memoryTitleInput.value = "";
-  editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Keep memory";
-  memoryEditor.classList.add("hidden");
+  draftMemory = {
+    title: "",
+    html: "",
+    text: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: null
+  };
 
   renderMemories();
-  createWall();
-}
 
-function editMemory(index) {
-  const memory = memories[selectedYear][index];
-
-  editingMemoryIndex = index;
-  editor.commands.setContent(memory.html || `<p>${escapeHtml(memory.text || "")}</p>`);
-  memoryTitleInput.value = memory.title || "";
-  lastSelectedImagePos = null;
-  ensureEditableEdges();
-  keepMemoryButton.textContent = "Update memory";
-  memoryEditor.classList.remove("hidden");
-  editor.commands.focus();
-  renderMemories();
-  memoryEditor.scrollIntoView({ behavior: "smooth", block: "start" });
+  const instance = activeCardEditors.get(draftMemory);
+  if (instance) instance.commands.focus();
 }
 
 async function deleteMemory(index) {
@@ -1206,57 +1193,160 @@ async function deleteMemory(index) {
   createWall();
 }
 
+// Debounced autosave — waits for a short pause in typing rather than
+// saving on every keystroke, both to avoid hammering storage and so a
+// mid-word save can't ever be caught half-written. Tracked per memory
+// (not one shared timer) so typing briefly in one card, then another,
+// can't cause the first one's pending change to be silently dropped.
+const autosaveTimers = new Map();
+
+function scheduleAutosave(memory, cardElement) {
+  const existing = autosaveTimers.get(memory);
+  if (existing) clearTimeout(existing.timerId);
+
+  const timerId = setTimeout(() => {
+    autosaveTimers.delete(memory);
+    commitMemoryChanges(memory, cardElement);
+  }, 600);
+
+  autosaveTimers.set(memory, { timerId, cardElement });
+}
+
+// Something else (deleting a different memory, opening a new year,
+// starting a fresh entry) is about to re-render the list and destroy
+// every editor instance. Any memory still mid-debounce needs its change
+// committed right now, synchronously, before that happens — otherwise
+// whatever was typed in the last 600ms just vanishes along with the
+// editor it was typed into.
+function flushPendingAutosaves() {
+  if (autosaveTimers.size === 0) return;
+
+  const pending = Array.from(autosaveTimers.entries());
+  autosaveTimers.clear();
+
+  pending.forEach(([memory, { timerId, cardElement }]) => {
+    clearTimeout(timerId);
+    // Not awaited deliberately — commitMemoryChanges reads the editor's
+    // current content synchronously before its first await, so the
+    // content is safely captured even though the editor itself gets
+    // destroyed a moment later by whatever triggered this flush.
+    commitMemoryChanges(memory, cardElement);
+  });
+}
+
+async function commitMemoryChanges(memory, cardElement) {
+  const instance = activeCardEditors.get(memory);
+  if (!instance) return;
+
+  const html = instance.getHTML();
+  const text = instance.getText().trim();
+  const hasImage = html.includes("<img");
+  const titleInput = cardElement.querySelector(".memory-title-input");
+  const title = titleInput ? titleInput.value.trim() : (memory.title || "");
+
+  memory.title = title;
+  memory.html = html;
+  memory.text = text;
+
+  const isDraft = memory === draftMemory;
+
+  if (isDraft) {
+    // Nothing written yet — stays as an uncommitted draft, nothing to save.
+    if (!text && !hasImage) return;
+
+    if (!memories[selectedYear]) memories[selectedYear] = [];
+    memories[selectedYear].unshift(memory);
+    draftMemory = null;
+  } else {
+    memory.updatedAt = new Date().toISOString();
+  }
+
+  const saved = await saveMemories();
+  const savedFlag = cardElement.querySelector(".memory-saved-flag");
+
+  if (!saved) {
+    alert(
+      "This memory couldn't be saved — this device may be out of storage space. " +
+      "Try removing or shrinking the photo, freeing up space on the device."
+    );
+    return;
+  }
+
+  createWall();
+
+  if (savedFlag) {
+    savedFlag.classList.remove("hidden");
+    clearTimeout(savedFlag._hideTimer);
+    savedFlag._hideTimer = setTimeout(() => savedFlag.classList.add("hidden"), 1800);
+  }
+}
+
 function renderMemories() {
+  flushPendingAutosaves();
+  destroyCardEditors();
   memoryList.innerHTML = "";
+  emptyYear.classList.add("hidden");
 
   const yearMemories = memories[selectedYear] || [];
 
-  // The empty-state message is retired — years with no memories now go
-  // straight to the entry field instead (see openYear).
-  emptyYear.classList.add("hidden");
-  showEditorButton.textContent = yearMemories.length === 0
-    ? "Record your first memory"
-    : "Record another memory";
+  // A year with nothing recorded yet — and no draft already pending —
+  // starts straight on a ready-to-type card, rather than an empty page
+  // with a button to click first.
+  if (yearMemories.length === 0 && !draftMemory) {
+    draftMemory = {
+      title: "",
+      html: "",
+      text: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: null
+    };
+  }
 
-  // No point showing a "record a memory" button while the entry field is
-  // already open right below it.
-  showEditorButton.classList.toggle(
-    "hidden",
-    !memoryEditor.classList.contains("hidden")
-  );
+  const cardsToRender = draftMemory ? [draftMemory, ...yearMemories] : yearMemories;
 
-  if (yearMemories.length === 0) return;
-
-  yearMemories.forEach((memory, index) => {
-    // Skip the memory currently open in the editor below — otherwise it
-    // shows up twice at once: once as a static card here, and again as
-    // the live thing you're editing, which is exactly the "double vision"
-    // confusion that was reported.
-    if (editingMemoryIndex === index) return;
-
-    const card = document.createElement("article");
-    card.className = "memory-card";
-
-    const dateText = memory.updatedAt
-      ? `${formatDate(memory.createdAt)} · Updated ${formatShortDate(memory.updatedAt)}`
-      : formatDate(memory.createdAt);
-
-    const content = memory.html
-      ? cleanMemoryHtml(memory.html)
-      : `<p>${escapeHtml(memory.text || "")}</p>`;
-
-    card.innerHTML = `
-      <div class="memory-actions">
-        <button type="button" class="memory-icon-button" data-action="edit" data-index="${index}" title="Edit this memory">&#9998;</button>
-        <button type="button" class="memory-icon-button" data-action="delete" data-index="${index}" title="Delete this memory">&#128465;</button>
-      </div>
-      ${memory.title ? `<h4 class="memory-card-title">${escapeHtml(memory.title)}</h4>` : ""}
-      <div class="memory-content">${content}</div>
-      <small>${dateText}</small>
-    `;
-
+  cardsToRender.forEach(memory => {
+    const card = buildMemoryCard(memory);
     memoryList.appendChild(card);
   });
+
+  // A sensible default so the floating toolbar has something to act on
+  // even before the person has clicked into any particular memory.
+  const firstInstance = activeCardEditors.values().next().value;
+  if (firstInstance) {
+    editor = firstInstance;
+    syncFormatToolbar();
+  }
+}
+
+function buildMemoryCard(memory) {
+  const isCommitted = memory !== draftMemory;
+  const index = isCommitted ? memories[selectedYear].indexOf(memory) : -1;
+
+  const card = document.createElement("article");
+  card.className = "memory-card";
+
+  const dateText = memory.updatedAt
+    ? `${formatDate(memory.createdAt)} · Updated ${formatShortDate(memory.updatedAt)}`
+    : formatDate(memory.createdAt);
+
+  card.innerHTML = `
+    ${isCommitted ? `<button type="button" class="memory-delete-button" data-action="delete" data-index="${index}" title="Delete this memory">&#128465;</button>` : ""}
+    <input type="text" class="memory-title-input" placeholder="Add a title to this memory" value="${escapeHtml(memory.title || "")}">
+    <div class="rich-memory-input memory-editor-mount"></div>
+    <small>${dateText} <span class="memory-saved-flag hidden">· Saved</span></small>
+  `;
+
+  const titleInput = card.querySelector(".memory-title-input");
+  titleInput.addEventListener("input", () => scheduleAutosave(memory, card));
+
+  const mount = card.querySelector(".memory-editor-mount");
+  const instance = createMemoryEditor(mount);
+  instance.commands.setContent(memory.html || (memory.text ? `<p>${escapeHtml(memory.text)}</p>` : ""));
+  instance.on("update", () => scheduleAutosave(memory, card));
+
+  activeCardEditors.set(memory, instance);
+
+  return card;
 }
 
 function addPhoto() {
@@ -1320,14 +1410,14 @@ function compressImageFile(file, maxDimension = MAX_PHOTO_DIMENSION) {
 // cursor without dragging the photo out of the way first. This guarantees
 // an empty, clickable paragraph always exists before/after a leading or
 // trailing photo, so a click always lands you a working cursor.
-function ensureEditableEdges() {
-  const doc = editor.state.doc;
+function ensureEditableEdges(targetEditor = editor) {
+  const doc = targetEditor.state.doc;
   if (doc.childCount === 0) return;
 
-  const paragraph = editor.schema.nodes.paragraph;
+  const paragraph = targetEditor.schema.nodes.paragraph;
   if (!paragraph) return;
 
-  const tr = editor.state.tr;
+  const tr = targetEditor.state.tr;
   let changed = false;
 
   // Insert at the end first, using the size of the *original* document —
@@ -1344,27 +1434,28 @@ function ensureEditableEdges() {
   }
 
   if (changed) {
-    editor.view.dispatch(tr);
+    targetEditor.view.dispatch(tr);
   }
 }
 
-function insertPhoto(file) {
+function insertPhoto(file, targetEditor = editor) {
   if (!file || !file.type.startsWith("image/")) return;
+  if (!targetEditor) return;
 
   compressImageFile(file)
     .then(dataUrl => {
-      editor.chain().focus().setImage({
+      targetEditor.chain().focus().setImage({
         src: dataUrl,
         alt: "Memory photograph",
         width: DEFAULT_PHOTO_WIDTH
       }).run();
-      ensureEditableEdges();
+      ensureEditableEdges(targetEditor);
 
       // Make the just-inserted photo immediately usable with Small/
       // Medium/Large without requiring a re-click. Found by its (unique)
       // data URL rather than assuming a position, since the edge-guarantee
       // above may have shifted everything by inserting a paragraph before it.
-      editor.state.doc.descendants((node, pos) => {
+      targetEditor.state.doc.descendants((node, pos) => {
         if (node.type.name === "image" && node.attrs.src === dataUrl) {
           lastSelectedImagePos = pos;
           return false;
@@ -1377,21 +1468,21 @@ function insertPhoto(file) {
     });
 }
 
-function setPhotoSize(width) {
-  const node = lastSelectedImagePos !== null ? editor.state.doc.nodeAt(lastSelectedImagePos) : null;
+function setPhotoSize(width, targetEditor = editor) {
+  const node = lastSelectedImagePos !== null ? targetEditor.state.doc.nodeAt(lastSelectedImagePos) : null;
 
   if (!node || node.type.name !== "image") {
     alert("Click a photo first, then choose a size.");
     return;
   }
 
-  editor.chain().focus().setNodeSelection(lastSelectedImagePos).updateAttributes("image", {
+  targetEditor.chain().focus().setNodeSelection(lastSelectedImagePos).updateAttributes("image", {
     width
   }).run();
 }
 
-function removePhoto() {
-  const node = lastSelectedImagePos !== null ? editor.state.doc.nodeAt(lastSelectedImagePos) : null;
+function removePhoto(targetEditor = editor) {
+  const node = lastSelectedImagePos !== null ? targetEditor.state.doc.nodeAt(lastSelectedImagePos) : null;
 
   if (!node || node.type.name !== "image") {
     alert("Click a photo first, then choose Remove photo.");
@@ -1399,16 +1490,54 @@ function removePhoto() {
   }
 
   const pos = lastSelectedImagePos;
-  editor.chain().focus().deleteRange({ from: pos, to: pos + node.nodeSize }).run();
+  targetEditor.chain().focus().deleteRange({ from: pos, to: pos + node.nodeSize }).run();
   lastSelectedImagePos = null;
 }
 
-async function startRecording() {
+// ------------------------------------------------------------------
+// Voice-to-text, generalised so any text box can use it, not just the
+// story editor. Each caller passes a "target" describing where the
+// transcript should land and how to insert it — the recording and
+// transcription plumbing underneath is shared.
+//
+// A tiptap target inserts as a new paragraph via the editor's own
+// commands. A plain-textarea target (Notes, Foreword, Afterword) splices
+// the transcript in at the cursor position and fires a normal "input"
+// event afterwards, so each page's existing autosave listener picks it
+// up exactly as if it had been typed.
+// ------------------------------------------------------------------
+let activeVoiceTarget = null;
+
+function insertTranscript(target, transcript) {
+  const text = transcript.trim();
+  if (!text) return;
+
+  if (target.type === "tiptap") {
+    editor.chain().focus().insertContent(`<p>${escapeHtml(text)}</p>`).run();
+    return;
+  }
+
+  const el = target.el;
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  const before = el.value.slice(0, start);
+  const after = el.value.slice(end);
+  const needsLeadingSpace = before && !/\s$/.test(before);
+
+  el.value = before + (needsLeadingSpace ? " " : "") + text + after;
+  const caret = before.length + (needsLeadingSpace ? 1 : 0) + text.length;
+  el.focus();
+  el.setSelectionRange(caret, caret);
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+async function startVoiceCapture(target) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     audioChunks = [];
     mediaRecorder = new MediaRecorder(stream);
+    activeVoiceTarget = target;
 
     mediaRecorder.ondataavailable = event => {
       if (event.data.size > 0) audioChunks.push(event.data);
@@ -1418,35 +1547,44 @@ async function startRecording() {
       stream.getTracks().forEach(track => track.stop());
 
       const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-      await transcribeAudio(audioBlob);
+      await transcribeAudio(audioBlob, target);
 
-      recordAudioButton.classList.remove("hidden");
-      stopRecordingButton.classList.add("hidden");
-      recordingStatus.classList.add("hidden");
+      setVoiceButtonState(target, false);
+      if (target.statusEl) target.statusEl.classList.add("hidden");
     };
 
     mediaRecorder.start();
 
-    recordAudioButton.classList.add("hidden");
-    stopRecordingButton.classList.remove("hidden");
-    recordingStatus.textContent = "Recording...";
-    recordingStatus.classList.remove("hidden");
+    setVoiceButtonState(target, true);
+    if (target.statusEl) {
+      target.statusEl.textContent = "Recording...";
+      target.statusEl.classList.remove("hidden");
+    }
   } catch (error) {
     alert("Microphone access was not available.");
     console.error(error);
   }
 }
 
-function stopRecording() {
+function stopVoiceCapture() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
-    recordingStatus.textContent = "Transcribing...";
+    if (activeVoiceTarget && activeVoiceTarget.statusEl) {
+      activeVoiceTarget.statusEl.textContent = "Transcribing...";
+    }
     mediaRecorder.stop();
   }
 }
 
-async function transcribeAudio(audioBlob) {
-  recordingStatus.textContent = "Transcribing...";
+function setVoiceButtonState(target, isRecording) {
+  if (target.recordButton) target.recordButton.classList.toggle("hidden", isRecording);
+  if (target.stopButton) target.stopButton.classList.toggle("hidden", !isRecording);
+  if (target.micButton) {
+    target.micButton.textContent = isRecording ? "⏹️" : "🎙️";
+    target.micButton.title = isRecording ? "Stop recording" : "Record and transcribe";
+  }
+}
 
+async function transcribeAudio(audioBlob, target) {
   const formData = new FormData();
   formData.append("audio", audioBlob, "memory.webm");
 
@@ -1460,21 +1598,30 @@ async function transcribeAudio(audioBlob) {
 
     if (!response.ok) {
       console.error(result);
-      alert("I couldn't preserve that memory just now. Please try again.");
+      alert("I couldn't preserve that just now. Please try again.");
       return;
     }
 
-    const transcript = result.text || "";
-
-    if (transcript.trim()) {
-      editor.chain().focus().insertContent(`<p>${escapeHtml(transcript.trim())}</p>`).run();
-    }
+    insertTranscript(target, result.text || "");
   } catch (error) {
     console.error(error);
     alert("The transcription service could not be reached.");
-  } finally {
-    recordingStatus.textContent = "Recording...";
   }
+}
+
+// Story editor's own record/stop buttons — unchanged behaviour, now
+// routed through the shared capture functions above.
+function startRecording() {
+  return startVoiceCapture({
+    type: "tiptap",
+    recordButton: recordAudioButton,
+    stopButton: stopRecordingButton,
+    statusEl: recordingStatus
+  });
+}
+
+function stopRecording() {
+  stopVoiceCapture();
 }
 
 function exportLife() {
@@ -1820,7 +1967,7 @@ async function resetMeWall() {
   settings = {};
   memories = {};
   selectedYear = null;
-  editingMemoryIndex = null;
+  draftMemory = null;
 
   wall.classList.add("hidden");
   yearView.classList.add("hidden");
@@ -1972,7 +2119,7 @@ function escapeHtml(value) {
 startButton.addEventListener("click", startMeWall);
 backButton.addEventListener("click", showWall);
 document.getElementById("infoBackButton").addEventListener("click", showWall);
-showEditorButton.addEventListener("click", showEditor);
+showEditorButton.addEventListener("click", addNewMemoryCard);
 
 // The foreword lives in settings, so it's automatically included in
 // export/import backups alongside the name and birth date. Its brick
@@ -2072,11 +2219,8 @@ document.getElementById("saveBookCoverButton").addEventListener("click", () => {
   setTimeout(() => status.classList.add("hidden"), 2500);
 });
 
-// Jump-to-top / jump-to-bottom buttons for long story pages. Wired
-// defensively: if the buttons aren't in the HTML (e.g. a mismatched
-// deploy), the app carries on without them rather than crashing —
-// a decoration should never take down the whole app.
-const scrollJump = document.getElementById("scrollJump");
+// Jump-to-top / jump-to-bottom now live inside the floating right column
+// alongside the formatting tools, rather than as a separate widget.
 const jumpTopButton = document.getElementById("jumpTopButton");
 const jumpBottomButton = document.getElementById("jumpBottomButton");
 
@@ -2092,25 +2236,60 @@ if (jumpBottomButton) {
   });
 }
 
-function updateScrollJumpVisibility() {
-  if (!scrollJump) return;
-  // These buttons belong to the story view only — reading or writing a
-  // long story is where the scrolling pain is. They never show on the
-  // Home Wall or setup screens.
+// ------------------------------------------------------------------
+// Floating columns — left column (Home Wall / start a new memory) and
+// right column (formatting, photo, audio, jump-to-top/bottom) both stay
+// visible the whole time you're on a story page now, since every
+// memory is permanently editable — there's no separate "reading" state
+// left to keep them clean for.
+// ------------------------------------------------------------------
+function updateFloatColumns() {
   const inStoryView = !yearView.classList.contains("hidden");
-  const pageIsLong =
-    document.documentElement.scrollHeight > window.innerHeight * 1.5;
-  scrollJump.classList.toggle("hidden", !(inStoryView && pageIsLong));
+
+  floatColLeft.classList.toggle("visible", inStoryView);
+  floatColRight.classList.toggle("visible", inStoryView);
+
+  if (!inStoryView) textStylePanel.classList.add("hidden");
+
+  if (inStoryView) positionLeftFloatColumn();
 }
 
-if (scrollJump) {
-  window.addEventListener("scroll", updateScrollJumpVisibility, { passive: true });
-  window.addEventListener("resize", updateScrollJumpVisibility);
-  // Content height also changes without scrolling or resizing — opening a
-  // year, saving a memory, rebuilding the wall — so watch the page itself.
-  new ResizeObserver(updateScrollJumpVisibility).observe(document.body);
-  updateScrollJumpVisibility();
+// Kept as the function name other code already calls into (opening a
+// year, saving a memory, etc.) — it now drives the floating columns
+// instead of the old scroll-jump widget.
+function updateScrollJumpVisibility() {
+  updateFloatColumns();
 }
+
+// ------------------------------------------------------------------
+// Measures the real, rendered position of two landmarks — the top of
+// the story card itself, and the bottom of the year-title field — and
+// centres the Home Wall / New Memory buttons in the gap between them.
+// This replaces guessed pixel numbers entirely: the distance from the
+// top of the screen to the card changes depending on how much the
+// header above it wraps, which varies with screen width and aspect
+// ratio, so no fixed number (or simple percentage) can get this right
+// on every screen. Measuring the actual rendered positions does.
+// ------------------------------------------------------------------
+function positionLeftFloatColumn() {
+  if (yearView.classList.contains("hidden")) return;
+
+  const cardTop = yearView.getBoundingClientRect().top;
+  const fieldBottom = yearCustomTitleInput.getBoundingClientRect().bottom;
+  const gapHeight = fieldBottom - cardTop;
+  const buttonBlockHeight = floatColLeft.offsetHeight;
+
+  // Centred in that gap, but never pushed above the card's own top edge
+  // even if the gap is unusually short on some screen.
+  const centredTop = cardTop + (gapHeight - buttonBlockHeight) / 2;
+  floatColLeft.style.top = `${Math.max(cardTop, centredTop)}px`;
+}
+
+let positionResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(positionResizeTimer);
+  positionResizeTimer = setTimeout(positionLeftFloatColumn, 100);
+});
 
 menuBar.addEventListener("click", event => {
   const item = event.target.closest(".menu-item");
@@ -2124,24 +2303,12 @@ menuBar.addEventListener("click", event => {
   }
 });
 
-cancelMemoryButton.addEventListener("click", () => {
-  editor.commands.clearContent();
-  memoryTitleInput.value = "";
-  editingMemoryIndex = null;
-  keepMemoryButton.textContent = "Keep memory";
-  memoryEditor.classList.add("hidden");
-  renderMemories();
-});
-
-keepMemoryButton.addEventListener("click", keepMemory);
-
 memoryList.addEventListener("click", event => {
   const button = event.target.closest("button");
   if (!button) return;
 
   const index = Number(button.dataset.index);
 
-  if (button.dataset.action === "edit") editMemory(index);
   if (button.dataset.action === "delete") deleteMemory(index);
 });
 
@@ -2159,6 +2326,41 @@ smallPhotoButton.addEventListener("click", () => setPhotoSize("35%"));
 mediumPhotoButton.addEventListener("click", () => setPhotoSize("60%"));
 largePhotoButton.addEventListener("click", () => setPhotoSize("100%"));
 removePhotoButton.addEventListener("click", removePhoto);
+
+// Voice-to-text on Notes, Foreword, and Afterword — a single floating
+// mic per page, shown only while that page's text box is focused,
+// toggling recording on and off with successive clicks.
+function wireFloatingMic(textareaId, micContainerId, micButtonId) {
+  const textarea = document.getElementById(textareaId);
+  const container = document.getElementById(micContainerId);
+  const button = document.getElementById(micButtonId);
+  if (!textarea || !container || !button) return;
+
+  textarea.addEventListener("focus", () => container.classList.add("visible"));
+  textarea.addEventListener("blur", () => {
+    // Leave it visible if the recording is actually still running,
+    // since the click needed to stop it will blur the textarea too.
+    if (!mediaRecorder || mediaRecorder.state !== "recording") {
+      container.classList.remove("visible");
+    }
+  });
+
+  button.addEventListener("click", () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      stopVoiceCapture();
+    } else {
+      startVoiceCapture({
+        type: "textarea",
+        el: textarea,
+        micButton: button
+      });
+    }
+  });
+}
+
+wireFloatingMic("notesText", "notesMic", "notesMicButton");
+wireFloatingMic("forewordText", "forewordMic", "forewordMicButton");
+wireFloatingMic("afterwordText", "afterwordMic", "afterwordMicButton");
 
 importInput.addEventListener("change", importLife);
 

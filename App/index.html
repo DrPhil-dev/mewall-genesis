@@ -38,6 +38,10 @@
       <p id="notesStatus" class="foreword-status hidden">Saved.</p>
     </section>
 
+    <div id="notesMic" class="float-mic">
+      <button type="button" class="float-icon-btn" id="notesMicButton" title="Record and transcribe">🎙️</button>
+    </div>
+
     <section id="pageContents" class="info-page hidden">
       <h2>Contents</h2>
       <p class="foreword-hint">Every year with something recorded in it — click one to jump straight there.</p>
@@ -52,6 +56,10 @@
       <p id="forewordStatus" class="foreword-status hidden">Saved.</p>
     </section>
 
+    <div id="forewordMic" class="float-mic">
+      <button type="button" class="float-icon-btn" id="forewordMicButton" title="Record and transcribe">🎙️</button>
+    </div>
+
     <section id="pageAfterword" class="info-page hidden">
       <h2>Afterword</h2>
       <p class="foreword-hint">A closing word for your book — how you feel looking back, what you'd want a reader to take with them. It will appear as the final page of your Life Book.</p>
@@ -59,6 +67,10 @@
       <button id="saveAfterwordButton" class="keep-button">Keep afterword</button>
       <p id="afterwordStatus" class="foreword-status hidden">Saved.</p>
     </section>
+
+    <div id="afterwordMic" class="float-mic">
+      <button type="button" class="float-icon-btn" id="afterwordMicButton" title="Record and transcribe">🎙️</button>
+    </div>
 
     <section id="pageWelcome" class="info-page hidden">
       <h2>Welcome to My Life Wall</h2>
@@ -151,12 +163,10 @@
 
     <section id="yearView" class="year-view hidden">
       <div class="year-top-row">
-        <button id="backButton" class="back-button">← Home Wall</button>
         <div class="year-heading">
           <h2 id="yearTitle"></h2>
           <span id="yearAge"></span>
         </div>
-        <div class="year-top-row-spacer" aria-hidden="true"></div>
       </div>
 
       <input id="yearCustomTitleInput" type="text" class="year-title-input" placeholder="Give this year a title (optional)">
@@ -165,28 +175,50 @@
         <div id="emptyYear" class="empty-year hidden"></div>
         <div id="memoryList" class="memory-list"></div>
       </section>
+    </section>
 
-      <button id="showEditorButton" class="keep-button">Record another memory</button>
+    <!-- Floating left column — Home Wall and "start a new memory", fixed
+         to the viewport (not the card) so it scrolls along with you and
+         stays reachable no matter how long the story is. -->
+    <div id="floatColLeft" class="float-col float-col-left">
+      <button id="backButton" class="back-button float-stack-btn">
+        <span class="float-btn-line">Home Wall</span>
+        <span class="float-btn-line float-btn-arrow">←</span>
+      </button>
+      <button id="showEditorButton" class="keep-button float-stack-btn">
+        <span class="float-btn-line">New</span>
+        <span class="float-btn-line">Memory</span>
+      </button>
+    </div>
 
-      <div id="memoryEditor" class="memory-box hidden">
-        <input id="memoryTitleInput" type="text" class="memory-title-input" placeholder="Add a title to this memory">
+    <!-- Floating right column — formatting, photo, and audio tools, plus
+         jump-to-top/bottom. Acts on whichever memory currently has
+         focus (see app.js), and stays visible the whole time you're on
+         a story page, since every memory is editable all the time now. -->
+    <div id="floatColRight" class="float-col float-col-right">
+      <input id="photoInput" type="file" accept="image/*" hidden />
+      <span id="recordingStatus" class="listening-status hidden">Recording...</span>
 
-        <div class="voice-actions">
-          <button id="recordAudioButton" class="voice-button record-button"><span class="mic-icon">🎙️</span> Record memory</button>
-          <button id="stopRecordingButton" class="voice-button hidden">Stop recording</button>
-          <button id="insertPhotoButton" class="voice-button">📷 Add photo</button>
-          <input id="photoInput" type="file" accept="image/*" hidden />
-          <span id="recordingStatus" class="listening-status hidden">Recording...</span>
-        </div>
+      <!-- Record memory is the main way in — a noticeably bigger button
+           than the rest, on its own at the top. -->
+      <button id="recordAudioButton" class="float-icon-btn float-icon-btn-primary record-button" title="Record memory">🎙️</button>
+      <button id="stopRecordingButton" class="float-icon-btn float-icon-btn-primary hidden" title="Stop recording">⏹️</button>
 
-        <div class="photo-size-tools">
-          <button id="smallPhotoButton" class="voice-button">Small photo</button>
-          <button id="mediumPhotoButton" class="voice-button">Medium photo</button>
-          <button id="largePhotoButton" class="voice-button">Large photo</button>
-          <button id="removePhotoButton" class="voice-button">Remove photo</button>
-        </div>
+      <span class="format-divider" aria-hidden="true"></span>
 
-        <div id="formatToolbar" class="format-toolbar">
+      <!-- Everything to do with photos, together — add one, then size
+           or remove whichever one you last selected. -->
+      <button id="insertPhotoButton" class="float-icon-btn" title="Add photo">📷</button>
+      <button type="button" id="smallPhotoButton" class="float-icon-btn" title="Small photo">S</button>
+      <button type="button" id="mediumPhotoButton" class="float-icon-btn" title="Medium photo">M</button>
+      <button type="button" id="largePhotoButton" class="float-icon-btn" title="Large photo">L</button>
+      <button type="button" id="removePhotoButton" class="float-icon-btn" title="Remove photo">🗑️</button>
+
+      <span class="format-divider" aria-hidden="true"></span>
+
+      <div class="float-style-trigger">
+        <button type="button" id="textStyleButton" class="float-icon-btn" title="Text style">Aa</button>
+        <div id="textStylePanel" class="float-style-panel hidden">
           <select id="headingSelect" class="format-select" title="Paragraph style">
             <option value="p">Normal text</option>
             <option value="1">Heading 1</option>
@@ -211,31 +243,25 @@
             <option value="22px">Large</option>
             <option value="28px">Extra large</option>
           </select>
-          <button type="button" id="boldButton" class="format-button" title="Bold"><strong>B</strong></button>
-          <button type="button" id="italicButton" class="format-button" title="Italic"><em>I</em></button>
-          <button type="button" id="strikeButton" class="format-button" title="Strikethrough"><s>S</s></button>
-          <button type="button" id="linkButton" class="format-button" title="Link">🔗</button>
-          <span class="format-divider" aria-hidden="true"></span>
-          <button type="button" id="alignLeftButton" class="format-button" title="Align left">⯇</button>
-          <button type="button" id="alignCenterButton" class="format-button" title="Align centre">≡</button>
-          <button type="button" id="alignRightButton" class="format-button" title="Align right">⯈</button>
-          <button type="button" id="alignJustifyButton" class="format-button" title="Justify">☰</button>
-        </div>
-
-        <div id="tipTapEditor" class="rich-memory-input"></div>
-
-        <p class="editor-hint">Type, speak, paste, drag, or add a photo directly into this memory. Once a photo's in, drag it to move it, or drag its corner handle to resize it.</p>
-
-        <div class="editor-actions">
-          <button id="keepMemoryButton" class="keep-button">Keep memory</button>
-          <button id="cancelMemoryButton" class="cancel-button">Cancel</button>
         </div>
       </div>
-    </section>
 
-    <div id="scrollJump" class="scroll-jump hidden" aria-hidden="false">
-      <button id="jumpTopButton" class="scroll-jump-button" title="Jump to top" aria-label="Jump to top">↑</button>
-      <button id="jumpBottomButton" class="scroll-jump-button" title="Jump to bottom" aria-label="Jump to bottom">↓</button>
+      <button type="button" id="boldButton" class="format-button" title="Bold"><strong>B</strong></button>
+      <button type="button" id="italicButton" class="format-button" title="Italic"><em>I</em></button>
+      <button type="button" id="strikeButton" class="format-button" title="Strikethrough"><s>S</s></button>
+      <button type="button" id="linkButton" class="format-button" title="Link">🔗</button>
+
+      <span class="format-divider" aria-hidden="true"></span>
+
+      <button type="button" id="alignLeftButton" class="format-button" title="Align left">⯇</button>
+      <button type="button" id="alignCenterButton" class="format-button" title="Align centre">≡</button>
+      <button type="button" id="alignRightButton" class="format-button" title="Align right">⯈</button>
+      <button type="button" id="alignJustifyButton" class="format-button" title="Justify">☰</button>
+
+      <span class="format-divider" aria-hidden="true"></span>
+
+      <button id="jumpTopButton" class="float-icon-btn" title="Jump to top" aria-label="Jump to top">↑</button>
+      <button id="jumpBottomButton" class="float-icon-btn" title="Jump to bottom" aria-label="Jump to bottom">↓</button>
     </div>
   </main>
 
