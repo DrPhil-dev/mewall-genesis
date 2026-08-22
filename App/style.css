@@ -1107,18 +1107,24 @@ body {
   font-family: Georgia, "Times New Roman", serif;
   background: #fffaf0;
   color: var(--text);
-  resize: vertical;
   outline: none;
 }
 
-.foreword-text:focus {
+/* Now a Tiptap editor mount rather than a textarea — the focus target is
+   the .tiptap element inside it, so :focus-within instead of :focus. */
+.foreword-text:focus-within {
   outline: 2px solid #cdb084;
 }
 
+.foreword-text .tiptap {
+  min-height: 300px;
+  outline: none;
+}
+
 /* Explicitly matches the button font size (16px) per the client's
-   instruction — the Foreword/Notes textareas above keep their own larger,
+   instruction — the Foreword/Notes editors above keep their own larger,
    more readable serif size since that instruction was Afterword-specific. */
-#afterwordText {
+#afterwordEditorMount {
   font-size: 16px;
 }
 
@@ -1416,22 +1422,16 @@ body {
   box-shadow: 0 12px 30px rgba(70, 55, 35, 0.18);
 }
 
-/* Voice-to-text everywhere there's a longer text field — Notes, Foreword,
-   Afterword — using the same floating-icon pattern, appearing only while
-   that box is focused. */
-.float-mic {
-  position: fixed;
-  right: 18px;
-  bottom: 32px;
-  z-index: 60;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms ease;
+/* Foreword/Afterword/Notes are real Tiptap editors now (see app.js), using
+   the same floating right column as memory cards — no photo tools, hence
+   .photo-tools-group being hidden here (display:contents normally, so the
+   group doesn't affect flex layout when it IS shown). */
+.photo-tools-group {
+  display: contents;
 }
 
-.float-mic.visible {
-  opacity: 1;
-  pointer-events: auto;
+.float-col-right.prose-mode .photo-tools-group {
+  display: none;
 }
 
 @media (max-width: 760px) {
@@ -1464,10 +1464,6 @@ body {
     font-size: 20px;
   }
 
-  .float-mic {
-    right: 8px;
-    bottom: 20px;
-  }
 }
 
 @media (max-width: 640px) {

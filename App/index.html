@@ -34,13 +34,9 @@
     <section id="pageNotes" class="info-page hidden">
       <h2>Notes</h2>
       <p class="foreword-hint">A place to jot down plans, ideas, and things still to do — saves itself as you type, so nothing gets lost on a scrap of paper next to the keyboard.</p>
-      <textarea id="notesText" class="foreword-text" rows="14" placeholder="Write your notes here..."></textarea>
+      <div id="notesEditorMount" class="foreword-text"></div>
       <p id="notesStatus" class="foreword-status hidden">Saved.</p>
     </section>
-
-    <div id="notesMic" class="float-mic">
-      <button type="button" class="float-icon-btn" id="notesMicButton" title="Record and transcribe">🎙️</button>
-    </div>
 
     <section id="pageContents" class="info-page hidden">
       <h2>Contents</h2>
@@ -51,26 +47,16 @@
     <section id="pageForeword" class="info-page hidden">
       <h2>Foreword</h2>
       <p class="foreword-hint">An introduction to your book — why you're writing it, who it's for, what these years have meant. It will appear at the front of your Life Book.</p>
-      <textarea id="forewordText" class="foreword-text" rows="12" placeholder="Write your foreword here..."></textarea>
-      <button id="saveForewordButton" class="keep-button">Keep foreword</button>
+      <div id="forewordEditorMount" class="foreword-text"></div>
       <p id="forewordStatus" class="foreword-status hidden">Saved.</p>
     </section>
-
-    <div id="forewordMic" class="float-mic">
-      <button type="button" class="float-icon-btn" id="forewordMicButton" title="Record and transcribe">🎙️</button>
-    </div>
 
     <section id="pageAfterword" class="info-page hidden">
       <h2>Afterword</h2>
       <p class="foreword-hint">A closing word for your book — how you feel looking back, what you'd want a reader to take with them. It will appear as the final page of your Life Book.</p>
-      <textarea id="afterwordText" class="foreword-text" rows="12" placeholder="Write your afterword here..."></textarea>
-      <button id="saveAfterwordButton" class="keep-button">Keep afterword</button>
+      <div id="afterwordEditorMount" class="foreword-text"></div>
       <p id="afterwordStatus" class="foreword-status hidden">Saved.</p>
     </section>
-
-    <div id="afterwordMic" class="float-mic">
-      <button type="button" class="float-icon-btn" id="afterwordMicButton" title="Record and transcribe">🎙️</button>
-    </div>
 
     <section id="pageWelcome" class="info-page hidden">
       <h2>Welcome to My Life Wall</h2>
@@ -204,17 +190,24 @@
       <button id="recordAudioButton" class="float-icon-btn float-icon-btn-primary record-button" title="Record memory">🎙️</button>
       <button id="stopRecordingButton" class="float-icon-btn float-icon-btn-primary hidden" title="Stop recording">⏹️</button>
 
-      <span class="format-divider" aria-hidden="true"></span>
+      <!-- Photo tools only make sense on a memory card — hidden via
+           .prose-mode when the right column is acting on Foreword/
+           Afterword/Notes instead (see updateFloatColumns in app.js).
+           Wrapped as one group (dividers included) so hiding it doesn't
+           leave an orphan divider behind. -->
+      <span class="photo-tools-group">
+        <span class="format-divider" aria-hidden="true"></span>
 
-      <!-- Everything to do with photos, together — add one, then size
-           or remove whichever one you last selected. -->
-      <button id="insertPhotoButton" class="float-icon-btn" title="Add photo">📷</button>
-      <button type="button" id="smallPhotoButton" class="float-icon-btn" title="Small photo">S</button>
-      <button type="button" id="mediumPhotoButton" class="float-icon-btn" title="Medium photo">M</button>
-      <button type="button" id="largePhotoButton" class="float-icon-btn" title="Large photo">L</button>
-      <button type="button" id="removePhotoButton" class="float-icon-btn" title="Remove photo">🗑️</button>
+        <!-- Everything to do with photos, together — add one, then size
+             or remove whichever one you last selected. -->
+        <button id="insertPhotoButton" class="float-icon-btn" title="Add photo">📷</button>
+        <button type="button" id="smallPhotoButton" class="float-icon-btn" title="Small photo">S</button>
+        <button type="button" id="mediumPhotoButton" class="float-icon-btn" title="Medium photo">M</button>
+        <button type="button" id="largePhotoButton" class="float-icon-btn" title="Large photo">L</button>
+        <button type="button" id="removePhotoButton" class="float-icon-btn" title="Remove photo">🗑️</button>
 
-      <span class="format-divider" aria-hidden="true"></span>
+        <span class="format-divider" aria-hidden="true"></span>
+      </span>
 
       <div class="float-style-trigger">
         <button type="button" id="textStyleButton" class="float-icon-btn" title="Text style">Aa</button>

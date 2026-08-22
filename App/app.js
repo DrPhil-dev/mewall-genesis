@@ -415,11 +415,14 @@ const backButton = document.getElementById("backButton");
 
 const showEditorButton = document.getElementById("showEditorButton");
 const memoryList = document.getElementById("memoryList");
-const forewordText = document.getElementById("forewordText");
+const pageForeword = document.getElementById("pageForeword");
+const forewordEditorMount = document.getElementById("forewordEditorMount");
 const forewordStatus = document.getElementById("forewordStatus");
-const afterwordText = document.getElementById("afterwordText");
+const pageAfterword = document.getElementById("pageAfterword");
+const afterwordEditorMount = document.getElementById("afterwordEditorMount");
 const afterwordStatus = document.getElementById("afterwordStatus");
-const notesText = document.getElementById("notesText");
+const pageNotes = document.getElementById("pageNotes");
+const notesEditorMount = document.getElementById("notesEditorMount");
 const notesStatus = document.getElementById("notesStatus");
 const contentsList = document.getElementById("contentsList");
 const emptyYear = document.getElementById("emptyYear");
@@ -533,15 +536,24 @@ function createMemoryEditor(container) {
     }
   });
 
-  // Focusing a DIFFERENT memory makes it "the" active editor for the
-  // floating toolbar, and clears the tracked photo position — a tracked
-  // position is just a number, meaningless once you've moved to a
-  // different memory's document. But focus fires again on THIS SAME
-  // instance too, every time a formatting button briefly hands focus to
-  // itself and calls .focus() to hand it back — clearing the position
-  // on every one of those was the actual bug (photo size buttons losing
-  // the selection after a single click). Only clear it on a genuine
-  // switch to a different memory.
+  wireEditorFocusTracking(instance);
+
+  return instance;
+}
+
+// Shared by every editor instance on the page (memory cards AND the
+// Foreword/Afterword/Notes editors below) — whichever one last fired
+// "focus" becomes the shared `editor` the floating toolbar acts on.
+//
+// Focusing a DIFFERENT instance makes it "the" active editor, and clears
+// the tracked photo position — a tracked position is just a number,
+// meaningless once you've moved to a different document. But focus fires
+// again on THIS SAME instance too, every time a formatting button briefly
+// hands focus to itself and calls .focus() to hand it back — clearing the
+// position on every one of those was the actual bug (photo size buttons
+// losing the selection after a single click). Only clear it on a genuine
+// switch to a different instance.
+function wireEditorFocusTracking(instance) {
   instance.on("focus", () => {
     if (editor !== instance) {
       lastSelectedImagePos = null;
@@ -554,12 +566,109 @@ function createMemoryEditor(container) {
   instance.on("selectionUpdate", () => {
     if (editor === instance) syncFormatToolbar();
   });
+}
+
+// Foreword, Afterword, and Notes get the same text-formatting toolbar as
+// memory cards (bold/italic/strike/link, headings, font, size, alignment)
+// but never need photos, so no Image extension and no drop/paste image
+// handling — just the plain-prose subset of createMemoryEditor above.
+function createProseEditor(container) {
+  const instance = new Editor({
+    element: container,
+    extensions: [
+      StarterKit,
+      TextStyle,
+      FontFamily,
+      FontSize,
+      TextAlign.configure({
+        types: ["heading", "paragraph"]
+      }),
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: false,
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank"
+        }
+      })
+    ],
+    content: ""
+  });
+
+  wireEditorFocusTracking(instance);
 
   return instance;
 }
 
+// Plain text saved by the old textarea-based Foreword/Afterword/Notes
+// (including any already-imported backup, like Bob Lee's real memoir
+// content) needs its paragraph breaks preserved when it first loads into
+// the new rich editor — a bare newline gets collapsed by HTML otherwise.
+// Content already saved by the new editor is HTML already and passes
+// through untouched.
+function toRichHtml(value) {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^<(p|h[1-3]|ul|ol|blockquote)[ >]/i.test(trimmed)) return trimmed;
+
+  return trimmed
+    .split(/\n+/)
+    .map(line => `<p>${escapeHtml(line.trim())}</p>`)
+    .join("");
+}
+
+let forewordEditor, afterwordEditor, notesEditor;
+const proseAutosaveTimers = {};
+
+// Same debounce/flash shape as scheduleAutosave for memories (600ms,
+// 1800ms flash) — kept separate since these save straight to a settings
+// key rather than into the memories array via commitMemoryChanges.
+function scheduleProseAutosave(key, instance, statusEl) {
+  const commit = () => {
+    settings[key] = instance.getHTML();
+    saveSettings();
+
+    if (statusEl) {
+      statusEl.classList.remove("hidden");
+      clearTimeout(statusEl._hideTimer);
+      statusEl._hideTimer = setTimeout(() => statusEl.classList.add("hidden"), 1800);
+    }
+  };
+
+  clearTimeout(proseAutosaveTimers[key]?.timerId);
+  proseAutosaveTimers[key] = {
+    commit,
+    timerId: setTimeout(() => {
+      delete proseAutosaveTimers[key];
+      commit();
+    }, 600)
+  };
+}
+
+// Mirrors flushPendingAutosaves for memories — called before Foreword/
+// Afterword/Notes get hidden or reloaded, so a change typed in the last
+// 600ms is committed synchronously instead of lost.
+function flushPendingProseAutosaves() {
+  Object.keys(proseAutosaveTimers).forEach(key => {
+    const pending = proseAutosaveTimers[key];
+    delete proseAutosaveTimers[key];
+    clearTimeout(pending.timerId);
+    pending.commit();
+  });
+}
+
 function setupEditor() {
   wireFormatToolbarButtons();
+
+  forewordEditor = createProseEditor(forewordEditorMount);
+  afterwordEditor = createProseEditor(afterwordEditorMount);
+  notesEditor = createProseEditor(notesEditorMount);
+
+  forewordEditor.on("update", () => scheduleProseAutosave("foreword", forewordEditor, forewordStatus));
+  afterwordEditor.on("update", () => scheduleProseAutosave("afterword", afterwordEditor, afterwordStatus));
+  notesEditor.on("update", () => scheduleProseAutosave("notes", notesEditor, notesStatus));
 }
 
 // The Notepad-style formatting bar: paragraph/heading dropdown, bold,
@@ -817,6 +926,12 @@ function changeBirthDate() {
 }
 
 function hideInfoPages() {
+  // Whichever of Foreword/Afterword/Notes is currently showing is about to
+  // be hidden (or reloaded from settings, if navigating back to itself) —
+  // commit anything mid-debounce first so nothing typed in the last 600ms
+  // is silently lost.
+  flushPendingProseAutosaves();
+
   document.querySelectorAll(".info-page").forEach(page => page.classList.add("hidden"));
 }
 
@@ -832,17 +947,17 @@ function showInfoPage(pageId) {
 
   // The Foreword page is editable — load whatever's been saved so far.
   if (pageId === "pageForeword") {
-    forewordText.value = settings.foreword || "";
+    forewordEditor.commands.setContent(toRichHtml(settings.foreword));
     forewordStatus.classList.add("hidden");
   }
 
   if (pageId === "pageAfterword") {
-    afterwordText.value = settings.afterword || "";
+    afterwordEditor.commands.setContent(toRichHtml(settings.afterword));
     afterwordStatus.classList.add("hidden");
   }
 
   if (pageId === "pageNotes") {
-    notesText.value = settings.notes || "";
+    notesEditor.commands.setContent(toRichHtml(settings.notes));
     notesStatus.classList.add("hidden");
   }
 
@@ -855,6 +970,8 @@ function showInfoPage(pageId) {
     document.getElementById("bookCoverSubtitleInput").value = settings.bookCoverSubtitle || "";
     document.getElementById("bookCoverStatus").classList.add("hidden");
   }
+
+  updateFloatColumns();
 }
 
 // The Contents page is generated live from whatever's actually been
@@ -1508,27 +1625,11 @@ function removePhoto(targetEditor = editor) {
 // ------------------------------------------------------------------
 let activeVoiceTarget = null;
 
-function insertTranscript(target, transcript) {
+function insertTranscript(transcript) {
   const text = transcript.trim();
   if (!text) return;
 
-  if (target.type === "tiptap") {
-    editor.chain().focus().insertContent(`<p>${escapeHtml(text)}</p>`).run();
-    return;
-  }
-
-  const el = target.el;
-  const start = el.selectionStart ?? el.value.length;
-  const end = el.selectionEnd ?? el.value.length;
-  const before = el.value.slice(0, start);
-  const after = el.value.slice(end);
-  const needsLeadingSpace = before && !/\s$/.test(before);
-
-  el.value = before + (needsLeadingSpace ? " " : "") + text + after;
-  const caret = before.length + (needsLeadingSpace ? 1 : 0) + text.length;
-  el.focus();
-  el.setSelectionRange(caret, caret);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
+  editor.chain().focus().insertContent(`<p>${escapeHtml(text)}</p>`).run();
 }
 
 async function startVoiceCapture(target) {
@@ -1578,10 +1679,6 @@ function stopVoiceCapture() {
 function setVoiceButtonState(target, isRecording) {
   if (target.recordButton) target.recordButton.classList.toggle("hidden", isRecording);
   if (target.stopButton) target.stopButton.classList.toggle("hidden", !isRecording);
-  if (target.micButton) {
-    target.micButton.textContent = isRecording ? "⏹️" : "🎙️";
-    target.micButton.title = isRecording ? "Stop recording" : "Record and transcribe";
-  }
 }
 
 async function transcribeAudio(audioBlob, target) {
@@ -1602,7 +1699,7 @@ async function transcribeAudio(audioBlob, target) {
       return;
     }
 
-    insertTranscript(target, result.text || "");
+    insertTranscript(result.text || "");
   } catch (error) {
     console.error(error);
     alert("The transcription service could not be reached.");
@@ -1613,7 +1710,6 @@ async function transcribeAudio(audioBlob, target) {
 // routed through the shared capture functions above.
 function startRecording() {
   return startVoiceCapture({
-    type: "tiptap",
     recordButton: recordAudioButton,
     stopButton: stopRecordingButton,
     statusEl: recordingStatus
@@ -1886,16 +1982,10 @@ function createLifeBook() {
   // The foreword, if one has been written, opens the book — its own page
   // straight after the title, like a real book.
   if (settings.foreword && settings.foreword.trim()) {
-    const forewordParagraphs = settings.foreword
-      .trim()
-      .split(/\n+/)
-      .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
-      .join("\n");
-
     bookHtml += `
       <section class="foreword-chapter">
         <h2>Foreword</h2>
-        ${forewordParagraphs}
+        ${cleanMemoryHtml(toRichHtml(settings.foreword))}
       </section>
   `;
   }
@@ -1924,16 +2014,10 @@ function createLifeBook() {
   // The afterword, if one has been written, closes the book — its own
   // page at the very end, after every year.
   if (settings.afterword && settings.afterword.trim()) {
-    const afterwordParagraphs = settings.afterword
-      .trim()
-      .split(/\n+/)
-      .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
-      .join("\n");
-
     bookHtml += `
       <section class="foreword-chapter">
         <h2>Afterword</h2>
-        ${afterwordParagraphs}
+        ${cleanMemoryHtml(toRichHtml(settings.afterword))}
       </section>
   `;
   }
@@ -2121,38 +2205,6 @@ backButton.addEventListener("click", showWall);
 document.getElementById("infoBackButton").addEventListener("click", showWall);
 showEditorButton.addEventListener("click", addNewMemoryCard);
 
-// The foreword lives in settings, so it's automatically included in
-// export/import backups alongside the name and birth date. Its brick
-// glow updates itself next time the wall renders — no need to touch it
-// here, since the brick is rebuilt fresh every time anyway.
-document.getElementById("saveForewordButton").addEventListener("click", () => {
-  settings.foreword = forewordText.value.trim();
-  saveSettings();
-  forewordStatus.classList.remove("hidden");
-  setTimeout(() => forewordStatus.classList.add("hidden"), 2500);
-});
-
-document.getElementById("saveAfterwordButton").addEventListener("click", () => {
-  settings.afterword = afterwordText.value.trim();
-  saveSettings();
-  afterwordStatus.classList.remove("hidden");
-  setTimeout(() => afterwordStatus.classList.add("hidden"), 2500);
-});
-
-// Notes is a running scratchpad, not a finished piece of writing like the
-// foreword — it saves itself a moment after you stop typing, rather than
-// waiting for a deliberate "Save" click.
-let notesSaveTimeout = null;
-notesText.addEventListener("input", () => {
-  clearTimeout(notesSaveTimeout);
-  notesSaveTimeout = setTimeout(() => {
-    settings.notes = notesText.value.trim();
-    saveSettings();
-    notesStatus.classList.remove("hidden");
-    setTimeout(() => notesStatus.classList.add("hidden"), 2000);
-  }, 600);
-});
-
 ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
   // field is right there anyway.
@@ -2243,15 +2295,36 @@ if (jumpBottomButton) {
 // memory is permanently editable — there's no separate "reading" state
 // left to keep them clean for.
 // ------------------------------------------------------------------
+// Foreword/Afterword/Notes get the same floating columns as a story page
+// (Home button, formatting toolbar, mic) — whichever of the three is
+// currently visible, if any.
+function getProseFloatSection() {
+  return [pageForeword, pageAfterword, pageNotes].find(
+    section => !section.classList.contains("hidden")
+  );
+}
+
 function updateFloatColumns() {
   const inStoryView = !yearView.classList.contains("hidden");
+  const proseSection = getProseFloatSection();
+  const showFloatCols = inStoryView || !!proseSection;
 
-  floatColLeft.classList.toggle("visible", inStoryView);
-  floatColRight.classList.toggle("visible", inStoryView);
+  floatColLeft.classList.toggle("visible", showFloatCols);
+  floatColRight.classList.toggle("visible", showFloatCols);
 
-  if (!inStoryView) textStylePanel.classList.add("hidden");
+  // "New Memory" only makes sense on a story page — Foreword/Afterword/
+  // Notes get the Home button only.
+  showEditorButton.classList.toggle("hidden", !inStoryView);
 
-  if (inStoryView) positionLeftFloatColumn();
+  // Photo tools don't apply outside a memory card either (see .prose-mode
+  // in style.css). The record button's own title just follows along —
+  // "Record memory" only makes sense in story view.
+  floatColRight.classList.toggle("prose-mode", !!proseSection);
+  recordAudioButton.title = inStoryView ? "Record memory" : "Record and transcribe";
+
+  if (!showFloatCols) textStylePanel.classList.add("hidden");
+
+  if (showFloatCols) positionLeftFloatColumn();
 }
 
 // Kept as the function name other code already calls into (opening a
@@ -2262,20 +2335,33 @@ function updateScrollJumpVisibility() {
 }
 
 // ------------------------------------------------------------------
-// Measures the real, rendered position of two landmarks — the top of
-// the story card itself, and the bottom of the year-title field — and
-// centres the Home Wall / New Memory buttons in the gap between them.
-// This replaces guessed pixel numbers entirely: the distance from the
-// top of the screen to the card changes depending on how much the
-// header above it wraps, which varies with screen width and aspect
-// ratio, so no fixed number (or simple percentage) can get this right
-// on every screen. Measuring the actual rendered positions does.
+// Measures the real, rendered position of two landmarks and centres the
+// Home Wall / New Memory buttons in the gap between them. On a story page
+// that's the top of the story card and the bottom of the year-title
+// field; on Foreword/Afterword/Notes it's the top of that page and the
+// bottom of its own hint paragraph — same idea (the space above the
+// actual writing area), applied to whichever is currently on screen. This
+// replaces guessed pixel numbers entirely: the distance from the top of
+// the screen changes depending on how much the header above it wraps,
+// which varies with screen width and aspect ratio, so no fixed number (or
+// simple percentage) can get this right on every screen. Measuring the
+// actual rendered positions does.
 // ------------------------------------------------------------------
 function positionLeftFloatColumn() {
-  if (yearView.classList.contains("hidden")) return;
+  let topEl, bottomEl;
 
-  const cardTop = yearView.getBoundingClientRect().top;
-  const fieldBottom = yearCustomTitleInput.getBoundingClientRect().bottom;
+  if (!yearView.classList.contains("hidden")) {
+    topEl = yearView;
+    bottomEl = yearCustomTitleInput;
+  } else {
+    const proseSection = getProseFloatSection();
+    if (!proseSection) return;
+    topEl = proseSection;
+    bottomEl = proseSection.querySelector(".foreword-hint");
+  }
+
+  const cardTop = topEl.getBoundingClientRect().top;
+  const fieldBottom = bottomEl.getBoundingClientRect().bottom;
   const gapHeight = fieldBottom - cardTop;
   const buttonBlockHeight = floatColLeft.offsetHeight;
 
@@ -2326,41 +2412,6 @@ smallPhotoButton.addEventListener("click", () => setPhotoSize("35%"));
 mediumPhotoButton.addEventListener("click", () => setPhotoSize("60%"));
 largePhotoButton.addEventListener("click", () => setPhotoSize("100%"));
 removePhotoButton.addEventListener("click", removePhoto);
-
-// Voice-to-text on Notes, Foreword, and Afterword — a single floating
-// mic per page, shown only while that page's text box is focused,
-// toggling recording on and off with successive clicks.
-function wireFloatingMic(textareaId, micContainerId, micButtonId) {
-  const textarea = document.getElementById(textareaId);
-  const container = document.getElementById(micContainerId);
-  const button = document.getElementById(micButtonId);
-  if (!textarea || !container || !button) return;
-
-  textarea.addEventListener("focus", () => container.classList.add("visible"));
-  textarea.addEventListener("blur", () => {
-    // Leave it visible if the recording is actually still running,
-    // since the click needed to stop it will blur the textarea too.
-    if (!mediaRecorder || mediaRecorder.state !== "recording") {
-      container.classList.remove("visible");
-    }
-  });
-
-  button.addEventListener("click", () => {
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-      stopVoiceCapture();
-    } else {
-      startVoiceCapture({
-        type: "textarea",
-        el: textarea,
-        micButton: button
-      });
-    }
-  });
-}
-
-wireFloatingMic("notesText", "notesMic", "notesMicButton");
-wireFloatingMic("forewordText", "forewordMic", "forewordMicButton");
-wireFloatingMic("afterwordText", "afterwordMic", "afterwordMicButton");
 
 importInput.addEventListener("change", importLife);
 

@@ -349,24 +349,70 @@ reappear, this is the first place to look.
   card border rather than floating in the middle of empty space on a wide
   screen.
 
+## Foreword, Afterword, and Notes are real editors now (added 2026-08-22)
+
+Originally plain `<textarea>` fields with their own small floating mic
+icon each. Dr Phil asked for the full story-editor treatment instead:
+formatting toolbar, the shared floating right-column mic, and a Home-only
+left column (no "New Memory" — that button only makes sense on a story
+page). Key pieces:
+
+- **`createProseEditor(container)`** — a lighter sibling of
+  `createMemoryEditor`: same text-formatting extensions (StarterKit,
+  TextStyle, FontFamily, FontSize, TextAlign, Link) but no `Image`
+  extension and no drop/paste image handling, since these three pages
+  never need photos. Both factories now share **`wireEditorFocusTracking`**
+  (extracted from `createMemoryEditor`'s old inline focus handler) so every
+  editor instance on the page — memory cards and these three — updates the
+  same shared `editor` variable the floating toolbar acts on.
+- **One persistent instance each** — `forewordEditor`, `afterwordEditor`,
+  `notesEditor`, created once in `setupEditor()`, not per-render like
+  memory cards. `showInfoPage()` calls `.commands.setContent(...)` on the
+  relevant one each time you navigate to that page.
+- **`toRichHtml(value)`** — content saved by the old textarea (plain text,
+  including any already-imported backup — e.g. Bob Lee's real memoir in
+  `mewall-genesisbob`) needs its paragraph breaks preserved when it first
+  loads into the new editor, since a bare `\n` collapses in HTML otherwise.
+  Detects plain text vs. already-rich HTML and wraps plain text into `<p>`
+  tags; content the new editor saved is HTML already and passes through
+  untouched. Applied on load (`showInfoPage`) and again at Life Book export
+  time, so it's safe regardless of when a given piece of content was
+  originally saved.
+- **`scheduleProseAutosave(key, instance, statusEl)` /
+  `flushPendingProseAutosaves()`** — same debounce/flash shape as memories'
+  `scheduleAutosave` (600ms debounce, 1800ms "Saved" flash), but writes
+  straight to a `settings` key instead of into the `memories` array. Flush
+  is called at the top of `hideInfoPages()` (the one chokepoint both
+  `showInfoPage` and `showWall` already went through before hiding these
+  pages), so navigating away — or back to the same page — mid-debounce
+  never silently drops the last 600ms of typing.
+- **`.prose-mode` on `#floatColRight`** — toggled in `updateFloatColumns()`
+  whenever Foreword/Afterword/Notes is the visible page. Hides the
+  photo-tool buttons via CSS (`.photo-tools-group { display: contents }`
+  normally, `display: none` in `.prose-mode` — the group's own dividers are
+  wrapped inside it, so hiding it doesn't leave an orphan divider behind).
+  `showEditorButton` ("New Memory") gets `.hidden` toggled the same way,
+  since it's story-page-only.
+- **`positionLeftFloatColumn()` and `getProseFloatSection()`** — the
+  JS-measured left-column positioning (see below) now branches: on a story
+  page it still measures the story card and title field; on one of these
+  three pages it measures that page's own top and its `.foreword-hint`
+  paragraph's bottom instead — same idea (centre Home in the gap above the
+  actual writing area), generalised to whichever page is currently visible.
+
 ## Voice-to-text
 
-Generalised beyond the story editor. Two entry points:
-
-- **`startRecording()` / `stopRecording()`** — thin wrappers for the story
-  editor's own mic button, calling into the shared capture functions below
-  with `{ type: "tiptap", recordButton, stopButton, statusEl }`.
-- **`wireFloatingMic(textareaId, micContainerId, micButtonId)`** — used for
-  Notes, Foreword, and Afterword. Each gets its own floating mic icon,
-  visible only while that textarea has focus, calling
-  `startVoiceCapture({ type: "textarea", el, micButton })`.
-
-Both routes share `startVoiceCapture` / `stopVoiceCapture` /
-`transcribeAudio` / `insertTranscript`. `insertTranscript` branches on
-`target.type`: a tiptap target inserts via editor commands, a textarea
-target splices the transcript in at the cursor and fires a synthetic
-`input` event so the page's existing autosave listener picks it up exactly
-as if it had been typed.
+One mic now, not several: the shared floating right column's
+`recordAudioButton`/`stopRecordingButton` (title switches between "Record
+memory" and "Record and transcribe" depending on whether you're in story
+view or one of the three prose pages). `startRecording()` targets whichever
+editor instance the shared `editor` variable currently points at —
+`insertTranscript(transcript)` always inserts into it directly, since every
+text field in the app is a Tiptap instance now. The old
+`wireFloatingMic`/per-page mic icon and the textarea-splicing branch of
+`insertTranscript` were removed as dead code once Foreword/Afterword/Notes
+stopped being textareas (see above) — if you're looking for that pattern
+from before 2026-08-22, it's gone, not hidden elsewhere.
 
 ## Things that are dead/legacy but harmless
 
