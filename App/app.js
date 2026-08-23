@@ -2368,7 +2368,18 @@ function positionLeftFloatColumn() {
   // Centred in that gap, but never pushed above the card's own top edge
   // even if the gap is unusually short on some screen.
   const centredTop = cardTop + (gapHeight - buttonBlockHeight) / 2;
-  floatColLeft.style.top = `${Math.max(cardTop, centredTop)}px`;
+  const naturalTop = Math.max(cardTop, centredTop);
+
+  // The header gap this centres in can scroll out of view entirely once
+  // you're deep into a long memory — this only recalculates on focus/
+  // resize/page-open, not on scroll, so a click into an editor while
+  // scrolled far down was computing a large negative (off-screen) top and
+  // leaving the buttons pinned there, invisible, until another lucky
+  // recalculation. Clamping to the visible viewport keeps it reachable
+  // the same way the right column always is (plain CSS, never off-screen).
+  const minVisibleTop = 12;
+  const maxVisibleTop = window.innerHeight - buttonBlockHeight - 12;
+  floatColLeft.style.top = `${Math.min(Math.max(naturalTop, minVisibleTop), maxVisibleTop)}px`;
 }
 
 let positionResizeTimer = null;
