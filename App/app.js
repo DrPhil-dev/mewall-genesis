@@ -2670,39 +2670,62 @@ function updateScrollJumpVisibility() {
 // actual rendered positions does.
 // ------------------------------------------------------------------
 function positionLeftFloatColumn() {
-  let topEl, bottomEl;
+  let topEl, bottomEl, fieldBottom;
 
   if (!yearView.classList.contains("hidden")) {
+    // The buttons are a single row now, so on a story page they sit in
+    // the band above the title field (level with the heading) rather
+    // than reaching down beside the title field itself.
     topEl = yearView;
     bottomEl = yearCustomTitleInput;
+    fieldBottom = bottomEl.getBoundingClientRect().top;
   } else {
     const proseSection = getProseFloatSection();
     if (!proseSection) return;
     topEl = proseSection;
     bottomEl = proseSection.querySelector(".foreword-hint");
+    fieldBottom = bottomEl.getBoundingClientRect().bottom;
   }
 
   const cardTop = topEl.getBoundingClientRect().top;
-  const fieldBottom = bottomEl.getBoundingClientRect().bottom;
   const gapHeight = fieldBottom - cardTop;
-  const buttonBlockHeight = floatColLeft.offsetHeight;
+
+  // The buttons sit as a single row, so the height to centre is one
+  // button's height (whichever button is showing; hidden ones measure 0).
+  const firstButton = floatColLeft.querySelector(".float-stack-btn:not(.hidden)");
+  const rowHeight = firstButton ? firstButton.offsetHeight : floatColLeft.offsetHeight;
 
   // Centred in that gap, but never pushed above the card's own top edge
   // even if the gap is unusually short on some screen.
-  const centredTop = cardTop + (gapHeight - buttonBlockHeight) / 2;
+  const centredTop = cardTop + (gapHeight - rowHeight) / 2;
   const naturalTop = Math.max(cardTop, centredTop);
 
-  // The header gap this centres in can scroll out of view entirely once
-  // you're deep into a long memory — this only recalculates on focus/
-  // resize/page-open, not on scroll, so a click into an editor while
-  // scrolled far down was computing a large negative (off-screen) top and
-  // leaving the buttons pinned there, invisible, until another lucky
-  // recalculation. Clamping to the visible viewport keeps it reachable
-  // the same way the right column always is (plain CSS, never off-screen).
+  // Once the heading band has scrolled up off the screen, a row of
+  // buttons pinned to the top would sit over the story text. So at that
+  // point they fold back into a narrow stack down the left edge (see
+  // .float-col-left.stacked in style.css), and return to a row when you
+  // scroll back up to the heading.
   const minVisibleTop = 12;
+  floatColLeft.classList.toggle("stacked", naturalTop < minVisibleTop);
+
+  // Clamped to the visible screen so the buttons are always reachable,
+  // the same way the right column always is.
+  const buttonBlockHeight = floatColLeft.offsetHeight;
   const maxVisibleTop = window.innerHeight - buttonBlockHeight - 12;
   floatColLeft.style.top = `${Math.min(Math.max(naturalTop, minVisibleTop), maxVisibleTop)}px`;
 }
+
+// Recalculated as you scroll (at most once per frame), so the row moves
+// up with the heading and switches to the stack at the right moment,
+// rather than only when a story is clicked into.
+let positionScrollFrame = null;
+window.addEventListener("scroll", () => {
+  if (!floatColLeft.classList.contains("visible") || positionScrollFrame) return;
+  positionScrollFrame = requestAnimationFrame(() => {
+    positionScrollFrame = null;
+    positionLeftFloatColumn();
+  });
+}, { passive: true });
 
 let positionResizeTimer = null;
 window.addEventListener("resize", () => {

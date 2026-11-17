@@ -1297,11 +1297,22 @@ body {
    much the header above it wraps differently on different screen
    widths and aspect ratios. This top value is only a fallback in case
    that measurement hasn't run yet. */
+/* Home Wall, New Memory and Arrange Stories sit side by side in a row
+   across the white space in the card's top-left corner (beside the
+   heading), rather than stacked down the left edge. */
 .float-col-left {
   top: 160px;
   transform: none;
   left: max(12px, calc((100vw - 900px) / 2 + 41px));
+  flex-direction: row;
   align-items: flex-start;
+}
+
+/* Scrolled down past the heading: back to the narrow vertical stack so
+   the buttons don't sit over the story text (set by
+   positionLeftFloatColumn in app.js). */
+.float-col-left.stacked {
+  flex-direction: column;
 }
 
 .float-col-right {
