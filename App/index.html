@@ -175,6 +175,13 @@
         <span class="float-btn-line">New</span>
         <span class="float-btn-line">Memory</span>
       </button>
+      <!-- Opens the thumbnail view for putting this page's stories in a
+           different order. Only shown once there are two or more saved
+           stories to arrange (see updateFloatColumns in app.js). -->
+      <button id="arrangeStoriesButton" class="arrange-button float-stack-btn hidden" title="Rearrange the order of these stories">
+        <span class="float-btn-line">Arrange</span>
+        <span class="float-btn-line">Stories</span>
+      </button>
     </div>
 
     <!-- Floating right column — formatting, photo, and audio tools, plus
@@ -255,6 +262,21 @@
 
       <button id="jumpTopButton" class="float-icon-btn" title="Jump to top" aria-label="Jump to top">↑</button>
       <button id="jumpBottomButton" class="float-icon-btn" title="Jump to bottom" aria-label="Jump to bottom">↓</button>
+    </div>
+
+    <!-- Arrange Stories: a thumbnail of every saved story on the page
+         currently open, dragged into a new order, then saved or
+         cancelled. Nothing changes until Save Order is clicked. -->
+    <div id="arrangePanel" class="arrange-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="arrangeTitle">
+      <div class="arrange-box">
+        <h2 id="arrangeTitle" class="arrange-title">Arrange stories</h2>
+        <p class="arrange-hint">Drag a story to where you want it. The first story here is the first one on the page and in the Life Book.</p>
+        <div id="arrangeGrid" class="arrange-grid"></div>
+        <div class="arrange-actions">
+          <button type="button" id="arrangeCancelButton" class="cancel-button arrange-cancel">Cancel</button>
+          <button type="button" id="arrangeSaveButton" class="keep-button arrange-save">Save Order</button>
+        </div>
+      </div>
     </div>
   </main>
 

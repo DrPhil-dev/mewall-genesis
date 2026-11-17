@@ -52,6 +52,14 @@ const MAX_PHOTO_WIDTH_PERCENT = 100;
 // removePhoto further down.
 let lastSelectedImagePos = null;
 
+// Which editor (which story) that photo belongs to. Clicking a photo in a
+// story you haven't clicked into yet sets the position first, and only
+// then does that story's editor receive focus. Knowing the owner lets
+// the focus handler keep a position that was just set in the story being
+// focused, rather than wiping it (which made the first click on a photo
+// in a new story count for nothing).
+let lastSelectedImageEditor = null;
+
 const CustomImage = Image.extend({
   // Native HTML5 drag-and-drop inside a contenteditable region is
   // notoriously inconsistent across browsers (this is what was causing the
@@ -312,6 +320,7 @@ const CustomImage = Image.extend({
           editor.state.doc.descendants((node, pos) => {
             if (node.type.name === "image" && node.attrs.src === imageNode.attrs.src) {
               lastSelectedImagePos = pos;
+              lastSelectedImageEditor = editor;
               return false;
             }
           });
@@ -346,6 +355,7 @@ const CustomImage = Image.extend({
         // time a toolbar button (outside the editor) gets clicked.
         if (typeof getPos === "function") {
           lastSelectedImagePos = getPos();
+          lastSelectedImageEditor = editor;
         }
 
         moveStartX = event.clientX;
@@ -437,6 +447,12 @@ const smallPhotoButton = document.getElementById("smallPhotoButton");
 const mediumPhotoButton = document.getElementById("mediumPhotoButton");
 const largePhotoButton = document.getElementById("largePhotoButton");
 const removePhotoButton = document.getElementById("removePhotoButton");
+const arrangeStoriesButton = document.getElementById("arrangeStoriesButton");
+const arrangePanel = document.getElementById("arrangePanel");
+const arrangeTitle = document.getElementById("arrangeTitle");
+const arrangeGrid = document.getElementById("arrangeGrid");
+const arrangeSaveButton = document.getElementById("arrangeSaveButton");
+const arrangeCancelButton = document.getElementById("arrangeCancelButton");
 
 const floatColLeft = document.getElementById("floatColLeft");
 const floatColRight = document.getElementById("floatColRight");
@@ -555,8 +571,12 @@ function createMemoryEditor(container) {
 // switch to a different instance.
 function wireEditorFocusTracking(instance) {
   instance.on("focus", () => {
-    if (editor !== instance) {
+    // Only forget the selected photo when focus moves to a different
+    // story, and not when that story is the one the photo was just
+    // clicked in.
+    if (editor !== instance && lastSelectedImageEditor !== instance) {
       lastSelectedImagePos = null;
+      lastSelectedImageEditor = null;
     }
     editor = instance;
     updateFloatColumns();
@@ -1240,6 +1260,10 @@ let draftMemory = null;
 function destroyCardEditors() {
   activeCardEditors.forEach(instance => instance.destroy());
   activeCardEditors.clear();
+
+  // Any remembered photo belonged to one of the editors just destroyed.
+  lastSelectedImagePos = null;
+  lastSelectedImageEditor = null;
 }
 
 function openYear(year, age) {
@@ -1391,6 +1415,10 @@ async function commitMemoryChanges(memory, cardElement) {
 
   createWall();
 
+  // A draft that just became a real story may have taken this page to
+  // two stories, which is when Arrange Stories appears.
+  if (isDraft) updateFloatColumns();
+
   if (savedFlag) {
     savedFlag.classList.remove("hidden");
     clearTimeout(savedFlag._hideTimer);
@@ -1433,6 +1461,10 @@ function renderMemories() {
     editor = firstInstance;
     syncFormatToolbar();
   }
+
+  // The story count may have changed (a delete, for instance), which
+  // decides whether Arrange Stories is shown.
+  updateFloatColumns();
 }
 
 function buildMemoryCard(memory) {
@@ -1464,6 +1496,281 @@ function buildMemoryCard(memory) {
   activeCardEditors.set(memory, instance);
 
   return card;
+}
+
+// ------------------------------------------------------------------
+// Arrange Stories: a thumbnail grid of every saved story on the page
+// that's open, dragged into a new order. Nothing is changed until Save
+// Order is clicked; Cancel (or Escape) leaves the stories exactly as
+// they were. The order saved here is the order the page shows them in
+// and the order the Life Book prints them in.
+//
+// Dragging uses pointer events rather than the browser's own HTML5
+// drag-and-drop, for the same reason photo moving does: native
+// drag-and-drop is inconsistent across browsers.
+// ------------------------------------------------------------------
+const arrangeThumbMemory = new WeakMap();
+let arrangeDrag = null;
+
+function getStoryPlainText(memory) {
+  if (memory.text) return memory.text;
+  const holder = document.createElement("template");
+  holder.innerHTML = memory.html || "";
+  return (holder.content.textContent || "").trim();
+}
+
+function getStoryFirstPhoto(memory) {
+  if (!memory.html || !memory.html.includes("<img")) return null;
+  // A <template> parses the HTML without loading or running anything.
+  const holder = document.createElement("template");
+  holder.innerHTML = memory.html;
+  const img = holder.content.querySelector("img");
+  return img ? img.getAttribute("src") : null;
+}
+
+function buildArrangeThumb(memory, position) {
+  const thumb = document.createElement("div");
+  thumb.className = "arrange-thumb";
+
+  const num = document.createElement("span");
+  num.className = "arrange-num";
+  num.textContent = position + 1;
+  thumb.appendChild(num);
+
+  const title = document.createElement("div");
+  title.className = "arrange-thumb-title";
+  title.textContent = memory.title && memory.title.trim() ? memory.title.trim() : "Untitled story";
+  thumb.appendChild(title);
+
+  const photoSrc = getStoryFirstPhoto(memory);
+  if (photoSrc) {
+    const img = document.createElement("img");
+    img.className = "arrange-thumb-photo";
+    img.src = photoSrc;
+    img.alt = "";
+    img.draggable = false;
+    thumb.appendChild(img);
+  }
+
+  const text = getStoryPlainText(memory);
+  const snippet = document.createElement("div");
+  snippet.className = "arrange-thumb-text";
+  snippet.textContent = text.length > 220 ? `${text.slice(0, 220).trim()}...` : text;
+  thumb.appendChild(snippet);
+
+  thumb.title = "Drag to move this story";
+  thumb.addEventListener("pointerdown", event => startArrangeDrag(event, thumb));
+
+  arrangeThumbMemory.set(thumb, memory);
+  return thumb;
+}
+
+function openArrangePanel() {
+  // Commit anything typed in the last moment before the order is read,
+  // so the thumbnails (and the saved order) include it.
+  flushPendingAutosaves();
+
+  const stories = memories[selectedYear] || [];
+  if (stories.length < 2) return;
+
+  arrangeGrid.innerHTML = "";
+  stories.forEach((memory, index) => arrangeGrid.appendChild(buildArrangeThumb(memory, index)));
+
+  const customTitle = yearCustomTitleInput.value.trim();
+  arrangeTitle.textContent = customTitle
+    ? `Arrange stories: ${yearTitle.textContent}, ${customTitle}`
+    : `Arrange stories: ${yearTitle.textContent}`;
+
+  arrangePanel.classList.remove("hidden");
+  document.body.classList.add("arrange-open");
+  arrangeGrid.scrollTop = 0;
+  arrangeSaveButton.focus();
+}
+
+function closeArrangePanel() {
+  endArrangeDrag();
+  arrangePanel.classList.add("hidden");
+  document.body.classList.remove("arrange-open");
+  arrangeGrid.innerHTML = "";
+}
+
+async function saveArrangeOrder() {
+  const stories = memories[selectedYear] || [];
+  const newOrder = Array.from(arrangeGrid.children).map(thumb => arrangeThumbMemory.get(thumb));
+
+  // Belt and braces: the new order must hold exactly the same stories as
+  // the page does, no more and no fewer, before anything is written.
+  const sameStories = newOrder.length === stories.length && newOrder.every(memory => stories.includes(memory));
+  if (!sameStories) {
+    alert("The stories on this page changed while arranging, so the new order wasn't saved. Please try again.");
+    closeArrangePanel();
+    return;
+  }
+
+  const changed = newOrder.some((memory, index) => memory !== stories[index]);
+  if (!changed) {
+    closeArrangePanel();
+    return;
+  }
+
+  const previousOrder = stories.slice();
+  stories.splice(0, stories.length, ...newOrder);
+
+  if (!(await saveMemories())) {
+    stories.splice(0, stories.length, ...previousOrder);
+    alert("Something went wrong saving the new order. The stories have been left as they were.");
+    return;
+  }
+
+  closeArrangePanel();
+  renderMemories();
+}
+
+function renumberArrangeThumbs() {
+  Array.from(arrangeGrid.children).forEach((thumb, index) => {
+    const num = thumb.querySelector(".arrange-num");
+    if (num) num.textContent = index + 1;
+
+    // The lifted copy following the pointer shows the number of the slot
+    // it will drop into.
+    if (arrangeDrag && arrangeDrag.ghost && thumb === arrangeDrag.thumb) {
+      const ghostNum = arrangeDrag.ghost.querySelector(".arrange-num");
+      if (ghostNum) ghostNum.textContent = index + 1;
+    }
+  });
+}
+
+function startArrangeDrag(event, thumb) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+
+  arrangeDrag = {
+    thumb,
+    startX: event.clientX,
+    startY: event.clientY,
+    pointerX: event.clientX,
+    pointerY: event.clientY,
+    offsetX: 0,
+    offsetY: 0,
+    ghost: null,
+    scrollFrame: null
+  };
+
+  document.addEventListener("pointermove", onArrangeDragMove);
+  document.addEventListener("pointerup", onArrangeDragEnd);
+  document.addEventListener("pointercancel", onArrangeDragEnd);
+}
+
+function onArrangeDragMove(event) {
+  if (!arrangeDrag) return;
+  arrangeDrag.pointerX = event.clientX;
+  arrangeDrag.pointerY = event.clientY;
+
+  // A small dead zone, so a plain click doesn't count as a drag.
+  if (!arrangeDrag.ghost) {
+    const moved = Math.hypot(event.clientX - arrangeDrag.startX, event.clientY - arrangeDrag.startY);
+    if (moved < 5) return;
+    beginArrangeGhost();
+  }
+
+  moveArrangeGhost();
+  placeArrangeThumbUnderPointer();
+}
+
+function beginArrangeGhost() {
+  const { thumb } = arrangeDrag;
+  const rect = thumb.getBoundingClientRect();
+
+  const ghost = thumb.cloneNode(true);
+  ghost.classList.add("arrange-ghost");
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  document.body.appendChild(ghost);
+
+  arrangeDrag.ghost = ghost;
+  arrangeDrag.offsetX = arrangeDrag.startX - rect.left;
+  arrangeDrag.offsetY = arrangeDrag.startY - rect.top;
+
+  thumb.classList.add("arrange-placeholder");
+  document.body.classList.add("arrange-dragging");
+  arrangeAutoScroll();
+}
+
+function moveArrangeGhost() {
+  const { ghost, pointerX, pointerY, offsetX, offsetY } = arrangeDrag;
+  ghost.style.left = `${pointerX - offsetX}px`;
+  ghost.style.top = `${pointerY - offsetY}px`;
+}
+
+// The dragged story moves into the slot under the pointer: in front of
+// the story it's over when the pointer is on that story's left half,
+// after it when on the right half. Past the last story, it goes to the
+// end. The ghost itself ignores the pointer (see .arrange-ghost), so
+// elementFromPoint sees the grid beneath it.
+function placeArrangeThumbUnderPointer() {
+  const { thumb, pointerX, pointerY } = arrangeDrag;
+  const under = document.elementFromPoint(pointerX, pointerY);
+  const target = under ? under.closest(".arrange-thumb") : null;
+
+  if (target && target !== thumb && arrangeGrid.contains(target)) {
+    const rect = target.getBoundingClientRect();
+    const before = pointerX < rect.left + rect.width / 2;
+    const reference = before ? target : target.nextSibling;
+    if (reference !== thumb && thumb.nextSibling !== reference) {
+      arrangeGrid.insertBefore(thumb, reference);
+      renumberArrangeThumbs();
+    }
+    return;
+  }
+
+  if (!target && under && arrangeGrid.contains(under)) {
+    const last = arrangeGrid.lastElementChild;
+    if (last && last !== thumb) {
+      const rect = last.getBoundingClientRect();
+      const pastEnd = pointerY > rect.bottom || (pointerY >= rect.top && pointerX > rect.right);
+      if (pastEnd) {
+        arrangeGrid.appendChild(thumb);
+        renumberArrangeThumbs();
+      }
+    }
+  }
+}
+
+// Scrolls the grid while a story is held near its top or bottom edge,
+// so a story can be moved a long way in a chapter with many stories.
+function arrangeAutoScroll() {
+  if (!arrangeDrag || !arrangeDrag.ghost) return;
+
+  const rect = arrangeGrid.getBoundingClientRect();
+  const edge = 60;
+  let step = 0;
+  if (arrangeDrag.pointerY < rect.top + edge) step = -Math.ceil((rect.top + edge - arrangeDrag.pointerY) / 4);
+  else if (arrangeDrag.pointerY > rect.bottom - edge) step = Math.ceil((arrangeDrag.pointerY - (rect.bottom - edge)) / 4);
+
+  if (step !== 0) {
+    const before = arrangeGrid.scrollTop;
+    arrangeGrid.scrollTop += step;
+    if (arrangeGrid.scrollTop !== before) placeArrangeThumbUnderPointer();
+  }
+
+  arrangeDrag.scrollFrame = requestAnimationFrame(arrangeAutoScroll);
+}
+
+function onArrangeDragEnd() {
+  endArrangeDrag();
+}
+
+function endArrangeDrag() {
+  document.removeEventListener("pointermove", onArrangeDragMove);
+  document.removeEventListener("pointerup", onArrangeDragEnd);
+  document.removeEventListener("pointercancel", onArrangeDragEnd);
+  if (!arrangeDrag) return;
+
+  if (arrangeDrag.scrollFrame) cancelAnimationFrame(arrangeDrag.scrollFrame);
+  if (arrangeDrag.ghost) arrangeDrag.ghost.remove();
+  arrangeDrag.thumb.classList.remove("arrange-placeholder");
+  document.body.classList.remove("arrange-dragging");
+  arrangeDrag = null;
 }
 
 function addPhoto() {
@@ -1575,6 +1882,7 @@ function insertPhoto(file, targetEditor = editor) {
       targetEditor.state.doc.descendants((node, pos) => {
         if (node.type.name === "image" && node.attrs.src === dataUrl) {
           lastSelectedImagePos = pos;
+          lastSelectedImageEditor = targetEditor;
           return false;
         }
       });
@@ -1585,7 +1893,7 @@ function insertPhoto(file, targetEditor = editor) {
     });
 }
 
-function setPhotoSize(width, targetEditor = editor) {
+function setPhotoSize(width, targetEditor = lastSelectedImageEditor || editor) {
   const node = lastSelectedImagePos !== null ? targetEditor.state.doc.nodeAt(lastSelectedImagePos) : null;
 
   if (!node || node.type.name !== "image") {
@@ -1598,7 +1906,7 @@ function setPhotoSize(width, targetEditor = editor) {
   }).run();
 }
 
-function removePhoto(targetEditor = editor) {
+function removePhoto(targetEditor = lastSelectedImageEditor || editor) {
   const node = lastSelectedImagePos !== null ? targetEditor.state.doc.nodeAt(lastSelectedImagePos) : null;
 
   if (!node || node.type.name !== "image") {
@@ -1609,6 +1917,7 @@ function removePhoto(targetEditor = editor) {
   const pos = lastSelectedImagePos;
   targetEditor.chain().focus().deleteRange({ from: pos, to: pos + node.nodeSize }).run();
   lastSelectedImagePos = null;
+  lastSelectedImageEditor = null;
 }
 
 // ------------------------------------------------------------------
@@ -2204,6 +2513,14 @@ startButton.addEventListener("click", startMeWall);
 backButton.addEventListener("click", showWall);
 document.getElementById("infoBackButton").addEventListener("click", showWall);
 showEditorButton.addEventListener("click", addNewMemoryCard);
+arrangeStoriesButton.addEventListener("click", openArrangePanel);
+arrangeSaveButton.addEventListener("click", saveArrangeOrder);
+arrangeCancelButton.addEventListener("click", closeArrangePanel);
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !arrangePanel.classList.contains("hidden")) {
+    closeArrangePanel();
+  }
+});
 
 ownerName.addEventListener("click", () => {
   // Only meaningful once a wall exists — on the setup screen the name
@@ -2316,6 +2633,11 @@ function updateFloatColumns() {
   // Notes get the Home button only.
   showEditorButton.classList.toggle("hidden", !inStoryView);
 
+  // Arranging only makes sense once there are at least two saved stories
+  // on this page to put in order.
+  const savedStoryCount = inStoryView ? (memories[selectedYear] || []).length : 0;
+  arrangeStoriesButton.classList.toggle("hidden", savedStoryCount < 2);
+
   // Photo tools don't apply outside a memory card either (see .prose-mode
   // in style.css). The record button's own title just follows along —
   // "Record memory" only makes sense in story view.
@@ -2422,7 +2744,11 @@ photoInput.addEventListener("change", event => {
 smallPhotoButton.addEventListener("click", () => setPhotoSize("35%"));
 mediumPhotoButton.addEventListener("click", () => setPhotoSize("60%"));
 largePhotoButton.addEventListener("click", () => setPhotoSize("100%"));
-removePhotoButton.addEventListener("click", removePhoto);
+// Wrapped in an arrow function, the same as the size buttons above.
+// Passed directly, the browser hands removePhoto the click event as its
+// first argument, which then takes the place of the editor it's meant to
+// act on, so the delete silently failed every time.
+removePhotoButton.addEventListener("click", () => removePhoto());
 
 importInput.addEventListener("change", importLife);
 

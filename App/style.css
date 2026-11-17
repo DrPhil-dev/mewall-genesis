@@ -1522,3 +1522,162 @@ body {
     font-size: 42px;
   }
 }
+
+/* ------------------------------------------------------------------
+   Arrange Stories: thumbnail grid for putting a page's stories in a
+   new order by dragging. Sits above everything else (including the
+   floating columns, z-index 60) until Save Order or Cancel.
+   ------------------------------------------------------------------ */
+body.arrange-open {
+  overflow: hidden;
+}
+
+body.arrange-dragging,
+body.arrange-dragging * {
+  cursor: grabbing !important;
+}
+
+.arrange-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(58, 53, 45, 0.45);
+}
+
+.arrange-box {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 64px);
+  padding: 28px 36px 24px;
+  background: var(--panel);
+  border: 1px solid #d8cbb8;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(70, 55, 35, 0.2);
+}
+
+.arrange-title {
+  margin: 0;
+  text-align: center;
+}
+
+.arrange-hint {
+  margin: 8px 0 18px;
+  text-align: center;
+  color: var(--soft-text);
+  font-size: 16px;
+}
+
+.arrange-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.arrange-thumb {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 220px;
+  padding: 12px 14px;
+  overflow: hidden;
+  background: #fffaf0;
+  border: 1px solid #d8cbb8;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(70, 55, 35, 0.08);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.arrange-thumb:hover {
+  border-color: var(--stone-dark);
+}
+
+.arrange-num {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: var(--stone);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.arrange-thumb-title {
+  min-height: 26px;
+  margin-left: 34px;
+  font-weight: bold;
+  font-size: 15px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.arrange-thumb-photo {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.arrange-thumb-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--soft-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The story being dragged leaves a faded, dashed outline in the slot it
+   will drop into; a lifted copy (the ghost) follows the pointer. */
+.arrange-thumb.arrange-placeholder {
+  opacity: 0.35;
+  border-style: dashed;
+  border-color: var(--stone-dark);
+}
+
+.arrange-ghost {
+  position: fixed;
+  z-index: 300;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  transform: rotate(1.5deg);
+  box-shadow: 0 16px 40px rgba(70, 55, 35, 0.28);
+}
+
+.arrange-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.arrange-actions .keep-button,
+.arrange-actions .cancel-button {
+  margin: 0;
+}
