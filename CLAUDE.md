@@ -344,10 +344,24 @@ reappear, this is the first place to look.
   text-style panel toggling). Do not replace this with a fixed CSS number —
   that was tried multiple times and consistently broke on different screen
   aspect ratios.
-- Both columns' *horizontal* position uses a CSS `calc()` anchored to the
-  card's actual width (900px) rather than the viewport edge, so they hug the
-  card border rather than floating in the middle of empty space on a wide
-  screen.
+- **Left column layout and horizontal position (updated 2026-11-17).**
+  Home Wall / New Memory / Arrange Stories sit as a **row** in the white
+  space at the story card's top-left, level with the heading. Once the
+  heading scrolls off screen, `positionLeftFloatColumn()` adds `.stacked`
+  (back to a vertical column) and moves the column out into the empty page
+  margin left of the card, so it never covers story text; scrolling back up
+  restores the row. On Foreword/Afterword/Notes (left-aligned heading in
+  that corner, no room inside) Home Wall always sits in that outside margin.
+  The *left* value is now set by JS from the card's measured
+  `getBoundingClientRect().left` (row: card left + 16px; outside: card left
+  minus button width minus 14px, never less than 8px), because the story
+  card and the Foreword/Afterword/Notes card are different widths and the
+  old fixed CSS `calc()` put Home Wall over the narrower card's border. The
+  CSS `calc()` remains only as a starting value. Screens 760px and under
+  keep their own CSS position (JS clears the inline left there). The
+  function also re-runs on scroll (once per animation frame).
+- The right column's horizontal position still uses a CSS `calc()`
+  anchored to the 900px card width.
 
 ## Foreword, Afterword, and Notes are real editors now (added 2026-08-22)
 

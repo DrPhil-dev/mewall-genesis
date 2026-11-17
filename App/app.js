@@ -2706,7 +2706,36 @@ function positionLeftFloatColumn() {
   // .float-col-left.stacked in style.css), and return to a row when you
   // scroll back up to the heading.
   const minVisibleTop = 12;
-  floatColLeft.classList.toggle("stacked", naturalTop < minVisibleTop);
+  const stacked = naturalTop < minVisibleTop;
+  floatColLeft.classList.toggle("stacked", stacked);
+
+  // Horizontal position, measured from where the page's card actually is
+  // on screen (the story card and the Foreword/Afterword/Notes card are
+  // different widths, so a fixed CSS formula put Home Wall over the
+  // narrower card's border).
+  //  - As a row on a story page: just inside the card's top-left corner,
+  //    in the white space beside the centred heading.
+  //  - Stacked (scrolled down), and always on Foreword/Afterword/Notes
+  //    (whose heading is left-aligned in that same corner, so there is no
+  //    room inside): out in the empty page margin to the left of the
+  //    card, so it never sits over text. Where that margin is too narrow,
+  //    as far left as the screen allows, and never further in than just
+  //    inside the card's edge.
+  // Small screens (760px and under) keep their own CSS position.
+  if (window.innerWidth > 760) {
+    const cardLeft = topEl.getBoundingClientRect().left;
+    const buttonWidth = firstButton ? firstButton.offsetWidth : 64;
+    let left;
+    if (stacked || topEl !== yearView) {
+      const outsideLeft = cardLeft - buttonWidth - 14;
+      left = Math.min(Math.max(8, outsideLeft), cardLeft + 6);
+    } else {
+      left = cardLeft + 16;
+    }
+    floatColLeft.style.left = `${Math.round(left)}px`;
+  } else {
+    floatColLeft.style.left = "";
+  }
 
   // Clamped to the visible screen so the buttons are always reachable,
   // the same way the right column always is.

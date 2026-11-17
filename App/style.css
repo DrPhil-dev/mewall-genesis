@@ -1303,7 +1303,9 @@ body {
 .float-col-left {
   top: 160px;
   transform: none;
-  left: max(12px, calc((100vw - 900px) / 2 + 41px));
+  /* Starting point only: positionLeftFloatColumn in app.js sets the
+     real left from the card's measured position on desktop screens. */
+  left: max(12px, calc((100vw - 900px) / 2 + 16px));
   flex-direction: row;
   align-items: flex-start;
 }
